@@ -1,0 +1,51 @@
+{
+  "contract_id": "stage6_6_6_creative_official_video_association",
+  "contract_version": "2.0.0",
+  "dataset_name": "campaign_creative_official_video_association",
+  "build_stage": "post_cleaning_cross_dataset_association",
+  "left_datasets": [
+    "gmvmax_campaign_product_creative_interval",
+    "gmvmax_campaign_product_creative_daily"
+  ],
+  "right_datasets": [
+    "shop_video_performance",
+    "creative_product_interval"
+  ],
+  "official_join_fields": [
+    "shop_id",
+    "post_id=video_id"
+  ],
+  "fallback_join_fields_forbidden": [
+    "creative_title=video_title",
+    "tiktok_account=creator_handle",
+    "time_posted=published_at_utc"
+  ],
+  "link_statuses": [
+    "linked_to_one_campaign",
+    "linked_to_multiple_campaigns",
+    "not_observed_in_selected_campaign_universe_scope",
+    "non_video_creative_not_applicable",
+    "unmatched_with_reason"
+  ],
+  "negative_status_required_scope_fields": [
+    "official_video_source_report_id",
+    "requested_start_date",
+    "requested_end_date",
+    "captured_at_utc",
+    "report_campaign_universe_policy",
+    "universe_completeness_status",
+    "universe_limitations",
+    "checked_campaign_count",
+    "checked_product_count"
+  ],
+  "rules": {
+    "exact_requested_ranges_must_match": true,
+    "complete_frozen_campaign_universe_required": true,
+    "one_video_may_link_to_multiple_campaigns": true,
+    "product_card_has_no_fabricated_post_id": true,
+    "unmatched_does_not_mean_never_used": true,
+    "official_video_zero_source_is_valid_but_does_not_prove_global_absence": true,
+    "creative_hub_source_must_match_relation_advertiser": true,
+    "duplicate_video_product_rows_are_deduplicated_by_official_video_id": true
+  }
+}

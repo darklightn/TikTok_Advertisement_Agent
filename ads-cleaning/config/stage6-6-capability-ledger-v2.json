@@ -1,0 +1,32 @@
+{
+  "schema_version": "stage6_6_capability_ledger_v2",
+  "ledger_version": "2026-08-13.1",
+  "updated_at": "2026-08-13",
+  "allowed_statuses": ["supported", "verified_unavailable", "blocked", "deferred"],
+  "capabilities": [
+    {"capability_id": "advertiser_daily_performance", "class": "core", "status": "supported", "shop_types": ["cross_border", "local"]},
+    {"capability_id": "advertiser_hourly_performance", "class": "core", "status": "supported", "shop_types": ["cross_border", "local"], "grain": "advertiser x metric hour x currency"},
+    {"capability_id": "campaign_interval_performance", "class": "core", "status": "supported", "shop_types": ["cross_border", "local"]},
+    {"capability_id": "campaign_daily_performance", "class": "core", "status": "supported", "shop_types": ["cross_border", "local"]},
+    {"capability_id": "campaign_source_specific_universes", "class": "core", "status": "supported", "shop_types": ["cross_border", "local"]},
+    {"capability_id": "campaign_product_interval_performance", "class": "core", "status": "supported", "shop_types": ["cross_border", "local"]},
+    {"capability_id": "campaign_product_creative_interval_performance", "class": "core", "status": "supported", "shop_types": ["cross_border", "local"]},
+    {"capability_id": "logical_job_resume_and_cross_batch_cleaning", "class": "core", "status": "supported", "shop_types": ["cross_border", "local"]},
+    {"capability_id": "cleaning_currency_time_field_and_aggregation_contracts", "class": "core", "status": "supported", "shop_types": ["cross_border", "local"]},
+    {"capability_id": "campaign_daily_official_cvr", "class": "conditional", "status": "verified_unavailable", "scope": "frozen campaign-daily Seller source", "impact": "Campaign daily diagnosis retains impressions, clicks, CTR, SKU orders, cost, revenue, CPO and ROI but no official campaign-day CVR."},
+    {"capability_id": "campaign_product_daily_performance", "class": "conditional", "status": "supported", "shop_types": ["cross_border", "local"]},
+    {"capability_id": "campaign_product_creative_daily_performance", "class": "conditional", "status": "supported", "shop_types": ["cross_border", "local"]},
+    {"capability_id": "shop_product_daily_performance", "class": "conditional", "status": "supported", "shop_types": ["cross_border", "local"]},
+    {"capability_id": "product_and_sku_commercial_status", "class": "conditional", "status": "supported", "shop_types": ["cross_border", "local"]},
+    {"capability_id": "advertiser_account_base_snapshot", "class": "conditional", "status": "supported", "shop_types": ["cross_border", "local"], "time_semantics": "request-time snapshot"},
+    {"capability_id": "advertiser_account_available_balance", "class": "conditional", "status": "blocked", "reason": "Selected seller business center differs from the official billing business center in both tested bindings.", "retry_condition": "A tested seller binding uses the billing business center and the official request contract is frozen."},
+    {"capability_id": "advertiser_account_spend_limit", "class": "conditional", "status": "blocked", "reason": "Selected seller business center differs from the official billing business center in both tested bindings.", "retry_condition": "A tested seller binding uses the billing business center and the official request contract is frozen."},
+    {"capability_id": "advertiser_account_delivery_status", "class": "conditional", "status": "verified_unavailable", "scope": "six frozen advertiser-account sources", "impact": "Account delivery blockers cannot be stated from this snapshot."},
+    {"capability_id": "advertiser_account_restriction_reason", "class": "conditional", "status": "verified_unavailable", "scope": "six frozen advertiser-account sources", "impact": "Account restriction reasons cannot be stated from this snapshot."},
+    {"capability_id": "campaign_hourly_performance", "class": "conditional", "status": "supported", "shop_types": ["cross_border", "local"], "grain": "advertiser x campaign x metric hour x currency", "supported_scope": "explicit campaign or all officially observed campaigns; one campaign-day work unit; maximum seven days; concurrency one", "evidence": "2026-08-13 double-shop live export and deterministic cleaning produced 48 campaign-hour rows per shop with complete 00-23 sequences."},
+    {"capability_id": "campaign_creative_to_official_video_linkage", "class": "conditional", "status": "supported", "shop_types": ["cross_border", "local"], "supported_scope": "official stable post_id=video_id linkage within the exact requested range and frozen campaign universe", "evidence": "Cross-border creative catalog: 48 distinct official video IDs, all 48 overlap campaign creative IDs; local shop-video source: 57 distinct IDs, all 57 overlap."},
+    {"capability_id": "shop_video_performance", "class": "conditional", "status": "supported", "shop_types": ["cross_border", "local"], "sample_observation": {"cross_border": "valid_complete_zero_rows_for_2026-08-01_through_2026-08-06", "local": "57_rows_for_2026-08-01_through_2026-08-06"}, "boundary": "A valid empty cross-border sample does not remove the report capability and does not block stable-ID linkage through another approved official catalog. It does mean that shop-side video views, item exposure/clicks, SKU orders, gross revenue, diagnosis status and boost status are unavailable from this report for that sample."},
+    {"capability_id": "order_level_advertising_attribution", "class": "conditional", "status": "verified_unavailable", "scope": "frozen order and GMV Max sources", "impact": "No specific order may be assigned to an advertiser, campaign or creative."},
+    {"capability_id": "livestream_specialized_data", "class": "conditional", "status": "deferred", "reason": "Explicitly excluded from the current project scope.", "impact": "No live-specialized diagnosis is claimed by this package."}
+  ]
+}

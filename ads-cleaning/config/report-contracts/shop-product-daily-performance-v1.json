@@ -1,0 +1,888 @@
+{
+  "schema_version": "product_performance_contract_v1",
+  "report_id": "shop_product_daily_performance",
+  "dataset": "shop_product_performance_daily",
+  "column_count": 176,
+  "fields": [
+    {
+      "column_index": 1,
+      "name": "product_name",
+      "type": "string"
+    },
+    {
+      "column_index": 2,
+      "name": "product_id",
+      "type": "id_string"
+    },
+    {
+      "column_index": 3,
+      "name": "gmv_tier",
+      "type": "string"
+    },
+    {
+      "column_index": 4,
+      "name": "listing_status",
+      "type": "string"
+    },
+    {
+      "column_index": 5,
+      "name": "overall_gmv",
+      "type": "money"
+    },
+    {
+      "column_index": 6,
+      "name": "overall_merchant_live_attributed_gmv",
+      "type": "money"
+    },
+    {
+      "column_index": 7,
+      "name": "overall_merchant_live_gmv",
+      "type": "money"
+    },
+    {
+      "column_index": 8,
+      "name": "overall_merchant_live_indirect_gmv",
+      "type": "money"
+    },
+    {
+      "column_index": 9,
+      "name": "overall_merchant_video_attributed_gmv",
+      "type": "money"
+    },
+    {
+      "column_index": 10,
+      "name": "overall_merchant_video_gmv",
+      "type": "money"
+    },
+    {
+      "column_index": 11,
+      "name": "overall_merchant_video_indirect_gmv",
+      "type": "money"
+    },
+    {
+      "column_index": 12,
+      "name": "overall_creator_attributed_gmv",
+      "type": "money"
+    },
+    {
+      "column_index": 13,
+      "name": "overall_creator_live_attributed_gmv",
+      "type": "money"
+    },
+    {
+      "column_index": 14,
+      "name": "overall_affiliate_live_gmv",
+      "type": "money"
+    },
+    {
+      "column_index": 15,
+      "name": "overall_creator_live_indirect_gmv",
+      "type": "money"
+    },
+    {
+      "column_index": 16,
+      "name": "overall_creator_video_attributed_gmv",
+      "type": "money"
+    },
+    {
+      "column_index": 17,
+      "name": "overall_affiliate_video_gmv",
+      "type": "money"
+    },
+    {
+      "column_index": 18,
+      "name": "overall_creator_video_indirect_gmv",
+      "type": "money"
+    },
+    {
+      "column_index": 19,
+      "name": "overall_merchant_product_card_gmv",
+      "type": "money"
+    },
+    {
+      "column_index": 20,
+      "name": "overall_orders",
+      "type": "integer"
+    },
+    {
+      "column_index": 21,
+      "name": "overall_sku_orders",
+      "type": "integer"
+    },
+    {
+      "column_index": 22,
+      "name": "overall_units_sold",
+      "type": "integer"
+    },
+    {
+      "column_index": 23,
+      "name": "overall_estimated_customers",
+      "type": "integer"
+    },
+    {
+      "column_index": 24,
+      "name": "overall_average_order_value",
+      "type": "money"
+    },
+    {
+      "column_index": 25,
+      "name": "overall_impressions",
+      "type": "integer"
+    },
+    {
+      "column_index": 26,
+      "name": "overall_clicks",
+      "type": "integer"
+    },
+    {
+      "column_index": 27,
+      "name": "overall_click_rate_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 28,
+      "name": "overall_add_to_cart",
+      "type": "integer"
+    },
+    {
+      "column_index": 29,
+      "name": "overall_add_to_cart_rate_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 30,
+      "name": "overall_ctor_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 31,
+      "name": "overall_unique_impressions",
+      "type": "integer"
+    },
+    {
+      "column_index": 32,
+      "name": "overall_unique_clicks",
+      "type": "integer"
+    },
+    {
+      "column_index": 33,
+      "name": "overall_unique_click_rate_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 34,
+      "name": "overall_unique_atc_users",
+      "type": "integer"
+    },
+    {
+      "column_index": 35,
+      "name": "overall_unique_atc_rate_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 36,
+      "name": "overall_unique_click_conversion_rate_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 37,
+      "name": "overall_tax_inclusive_gmv",
+      "type": "money"
+    },
+    {
+      "column_index": 38,
+      "name": "overall_tax_amount",
+      "type": "money"
+    },
+    {
+      "column_index": 39,
+      "name": "overall_tiktok_cofunded_gmv",
+      "type": "money"
+    },
+    {
+      "column_index": 40,
+      "name": "overall_shipping_fee",
+      "type": "money"
+    },
+    {
+      "column_index": 41,
+      "name": "overall_refund_amount",
+      "type": "money"
+    },
+    {
+      "column_index": 42,
+      "name": "overall_refunded_units",
+      "type": "integer"
+    },
+    {
+      "column_index": 43,
+      "name": "overall_refund_customers",
+      "type": "integer"
+    },
+    {
+      "column_index": 44,
+      "name": "overall_mall_impressions",
+      "type": "integer"
+    },
+    {
+      "column_index": 45,
+      "name": "overall_mall_clicks",
+      "type": "integer"
+    },
+    {
+      "column_index": 46,
+      "name": "overall_mall_unique_clicks",
+      "type": "integer"
+    },
+    {
+      "column_index": 47,
+      "name": "overall_mall_estimated_customers",
+      "type": "integer"
+    },
+    {
+      "column_index": 48,
+      "name": "overall_mall_click_rate_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 49,
+      "name": "overall_mall_click_conversion_rate_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 50,
+      "name": "overall_mall_gmv",
+      "type": "money"
+    },
+    {
+      "column_index": 51,
+      "name": "overall_mall_units_sold",
+      "type": "integer"
+    },
+    {
+      "column_index": 52,
+      "name": "merchant_live_attributed_gmv",
+      "type": "money"
+    },
+    {
+      "column_index": 53,
+      "name": "merchant_live_gmv",
+      "type": "money"
+    },
+    {
+      "column_index": 54,
+      "name": "merchant_live_indirect_gmv",
+      "type": "money"
+    },
+    {
+      "column_index": 55,
+      "name": "merchant_live_attributed_orders",
+      "type": "integer"
+    },
+    {
+      "column_index": 56,
+      "name": "merchant_live_attributed_sku_orders",
+      "type": "integer"
+    },
+    {
+      "column_index": 57,
+      "name": "merchant_live_sku_orders",
+      "type": "integer"
+    },
+    {
+      "column_index": 58,
+      "name": "merchant_live_indirect_sku_orders",
+      "type": "integer"
+    },
+    {
+      "column_index": 59,
+      "name": "merchant_live_attributed_units_sold",
+      "type": "integer"
+    },
+    {
+      "column_index": 60,
+      "name": "merchant_live_units_sold",
+      "type": "integer"
+    },
+    {
+      "column_index": 61,
+      "name": "merchant_live_indirect_units_sold",
+      "type": "integer"
+    },
+    {
+      "column_index": 62,
+      "name": "merchant_live_estimated_customers",
+      "type": "integer"
+    },
+    {
+      "column_index": 63,
+      "name": "merchant_live_attributed_aov",
+      "type": "money"
+    },
+    {
+      "column_index": 64,
+      "name": "merchant_live_new_live_sessions",
+      "type": "integer"
+    },
+    {
+      "column_index": 65,
+      "name": "merchant_live_impressions",
+      "type": "integer"
+    },
+    {
+      "column_index": 66,
+      "name": "merchant_live_clicks",
+      "type": "integer"
+    },
+    {
+      "column_index": 67,
+      "name": "merchant_live_click_rate_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 68,
+      "name": "merchant_live_add_to_cart",
+      "type": "integer"
+    },
+    {
+      "column_index": 69,
+      "name": "merchant_live_add_to_cart_rate_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 70,
+      "name": "merchant_live_ctor_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 71,
+      "name": "merchant_live_unique_impressions",
+      "type": "integer"
+    },
+    {
+      "column_index": 72,
+      "name": "merchant_live_unique_clicks",
+      "type": "integer"
+    },
+    {
+      "column_index": 73,
+      "name": "merchant_live_unique_click_rate_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 74,
+      "name": "merchant_live_unique_atc_users",
+      "type": "integer"
+    },
+    {
+      "column_index": 75,
+      "name": "merchant_live_unique_atc_rate_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 76,
+      "name": "merchant_live_unique_click_conversion_rate_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 77,
+      "name": "merchant_video_attributed_gmv",
+      "type": "money"
+    },
+    {
+      "column_index": 78,
+      "name": "merchant_video_gmv",
+      "type": "money"
+    },
+    {
+      "column_index": 79,
+      "name": "merchant_video_indirect_gmv",
+      "type": "money"
+    },
+    {
+      "column_index": 80,
+      "name": "merchant_video_attributed_orders",
+      "type": "integer"
+    },
+    {
+      "column_index": 81,
+      "name": "merchant_video_attributed_sku_orders",
+      "type": "integer"
+    },
+    {
+      "column_index": 82,
+      "name": "merchant_video_sku_orders",
+      "type": "integer"
+    },
+    {
+      "column_index": 83,
+      "name": "merchant_video_indirect_sku_orders",
+      "type": "integer"
+    },
+    {
+      "column_index": 84,
+      "name": "merchant_video_attributed_units_sold",
+      "type": "integer"
+    },
+    {
+      "column_index": 85,
+      "name": "merchant_video_units_sold",
+      "type": "integer"
+    },
+    {
+      "column_index": 86,
+      "name": "merchant_video_indirect_units_sold",
+      "type": "integer"
+    },
+    {
+      "column_index": 87,
+      "name": "merchant_video_estimated_customers",
+      "type": "integer"
+    },
+    {
+      "column_index": 88,
+      "name": "merchant_video_attributed_aov",
+      "type": "money"
+    },
+    {
+      "column_index": 89,
+      "name": "merchant_video_new_videos",
+      "type": "integer"
+    },
+    {
+      "column_index": 90,
+      "name": "merchant_video_impressions",
+      "type": "integer"
+    },
+    {
+      "column_index": 91,
+      "name": "merchant_video_clicks",
+      "type": "integer"
+    },
+    {
+      "column_index": 92,
+      "name": "merchant_video_click_rate_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 93,
+      "name": "merchant_video_add_to_cart",
+      "type": "integer"
+    },
+    {
+      "column_index": 94,
+      "name": "merchant_video_add_to_cart_rate_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 95,
+      "name": "merchant_video_ctor_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 96,
+      "name": "merchant_video_unique_impressions",
+      "type": "integer"
+    },
+    {
+      "column_index": 97,
+      "name": "merchant_video_unique_clicks",
+      "type": "integer"
+    },
+    {
+      "column_index": 98,
+      "name": "merchant_video_unique_click_rate_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 99,
+      "name": "merchant_video_unique_atc_users",
+      "type": "integer"
+    },
+    {
+      "column_index": 100,
+      "name": "merchant_video_unique_atc_rate_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 101,
+      "name": "merchant_video_unique_click_conversion_rate_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 102,
+      "name": "affiliate_attributed_gmv",
+      "type": "money"
+    },
+    {
+      "column_index": 103,
+      "name": "affiliate_live_attributed_gmv",
+      "type": "money"
+    },
+    {
+      "column_index": 104,
+      "name": "affiliate_live_gmv",
+      "type": "money"
+    },
+    {
+      "column_index": 105,
+      "name": "affiliate_live_indirect_gmv",
+      "type": "money"
+    },
+    {
+      "column_index": 106,
+      "name": "affiliate_video_attributed_gmv",
+      "type": "money"
+    },
+    {
+      "column_index": 107,
+      "name": "affiliate_video_gmv",
+      "type": "money"
+    },
+    {
+      "column_index": 108,
+      "name": "affiliate_video_indirect_gmv",
+      "type": "money"
+    },
+    {
+      "column_index": 109,
+      "name": "affiliate_attributed_orders",
+      "type": "integer"
+    },
+    {
+      "column_index": 110,
+      "name": "affiliate_attributed_sku_orders",
+      "type": "integer"
+    },
+    {
+      "column_index": 111,
+      "name": "affiliate_attributed_units_sold",
+      "type": "integer"
+    },
+    {
+      "column_index": 112,
+      "name": "affiliate_estimated_customers",
+      "type": "integer"
+    },
+    {
+      "column_index": 113,
+      "name": "affiliate_attributed_aov",
+      "type": "money"
+    },
+    {
+      "column_index": 114,
+      "name": "affiliate_promoting_creators",
+      "type": "integer"
+    },
+    {
+      "column_index": 115,
+      "name": "affiliate_new_live_sessions",
+      "type": "integer"
+    },
+    {
+      "column_index": 116,
+      "name": "affiliate_new_videos",
+      "type": "integer"
+    },
+    {
+      "column_index": 117,
+      "name": "affiliate_impressions",
+      "type": "integer"
+    },
+    {
+      "column_index": 118,
+      "name": "affiliate_clicks",
+      "type": "integer"
+    },
+    {
+      "column_index": 119,
+      "name": "affiliate_click_rate_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 120,
+      "name": "affiliate_add_to_cart",
+      "type": "integer"
+    },
+    {
+      "column_index": 121,
+      "name": "affiliate_add_to_cart_rate_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 122,
+      "name": "affiliate_ctor_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 123,
+      "name": "affiliate_unique_impressions",
+      "type": "integer"
+    },
+    {
+      "column_index": 124,
+      "name": "affiliate_unique_clicks",
+      "type": "integer"
+    },
+    {
+      "column_index": 125,
+      "name": "affiliate_unique_click_rate_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 126,
+      "name": "affiliate_unique_atc_users",
+      "type": "integer"
+    },
+    {
+      "column_index": 127,
+      "name": "affiliate_unique_atc_rate_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 128,
+      "name": "affiliate_unique_click_conversion_rate_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 129,
+      "name": "affiliate_live_impressions",
+      "type": "integer"
+    },
+    {
+      "column_index": 130,
+      "name": "affiliate_live_clicks",
+      "type": "integer"
+    },
+    {
+      "column_index": 131,
+      "name": "affiliate_live_click_rate_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 132,
+      "name": "affiliate_live_add_to_cart",
+      "type": "integer"
+    },
+    {
+      "column_index": 133,
+      "name": "affiliate_live_add_to_cart_rate_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 134,
+      "name": "affiliate_live_ctor_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 135,
+      "name": "affiliate_live_unique_impressions",
+      "type": "integer"
+    },
+    {
+      "column_index": 136,
+      "name": "affiliate_live_unique_clicks",
+      "type": "integer"
+    },
+    {
+      "column_index": 137,
+      "name": "affiliate_live_unique_click_rate_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 138,
+      "name": "affiliate_live_unique_atc_users",
+      "type": "integer"
+    },
+    {
+      "column_index": 139,
+      "name": "affiliate_live_unique_atc_rate_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 140,
+      "name": "affiliate_live_unique_click_conversion_rate_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 141,
+      "name": "affiliate_video_impressions",
+      "type": "integer"
+    },
+    {
+      "column_index": 142,
+      "name": "affiliate_video_clicks",
+      "type": "integer"
+    },
+    {
+      "column_index": 143,
+      "name": "affiliate_video_click_rate_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 144,
+      "name": "affiliate_video_add_to_cart",
+      "type": "integer"
+    },
+    {
+      "column_index": 145,
+      "name": "affiliate_video_add_to_cart_rate_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 146,
+      "name": "affiliate_video_ctor_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 147,
+      "name": "affiliate_video_unique_impressions",
+      "type": "integer"
+    },
+    {
+      "column_index": 148,
+      "name": "affiliate_video_unique_clicks",
+      "type": "integer"
+    },
+    {
+      "column_index": 149,
+      "name": "affiliate_video_unique_click_rate_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 150,
+      "name": "affiliate_video_unique_atc_users",
+      "type": "integer"
+    },
+    {
+      "column_index": 151,
+      "name": "affiliate_video_unique_atc_rate_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 152,
+      "name": "affiliate_video_unique_click_conversion_rate_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 153,
+      "name": "merchant_product_card_attributed_gmv",
+      "type": "money"
+    },
+    {
+      "column_index": 154,
+      "name": "merchant_product_card_gmv",
+      "type": "money"
+    },
+    {
+      "column_index": 155,
+      "name": "merchant_product_card_indirect_gmv",
+      "type": "money"
+    },
+    {
+      "column_index": 156,
+      "name": "merchant_product_card_attributed_orders",
+      "type": "integer"
+    },
+    {
+      "column_index": 157,
+      "name": "merchant_product_card_attributed_sku_orders",
+      "type": "integer"
+    },
+    {
+      "column_index": 158,
+      "name": "merchant_product_card_sku_orders",
+      "type": "integer"
+    },
+    {
+      "column_index": 159,
+      "name": "merchant_product_card_indirect_sku_orders",
+      "type": "integer"
+    },
+    {
+      "column_index": 160,
+      "name": "merchant_product_card_attributed_units_sold",
+      "type": "integer"
+    },
+    {
+      "column_index": 161,
+      "name": "merchant_product_card_units_sold",
+      "type": "integer"
+    },
+    {
+      "column_index": 162,
+      "name": "merchant_product_card_indirect_units_sold",
+      "type": "integer"
+    },
+    {
+      "column_index": 163,
+      "name": "merchant_product_card_estimated_customers",
+      "type": "integer"
+    },
+    {
+      "column_index": 164,
+      "name": "merchant_product_card_attributed_aov",
+      "type": "money"
+    },
+    {
+      "column_index": 165,
+      "name": "merchant_product_card_impressions",
+      "type": "integer"
+    },
+    {
+      "column_index": 166,
+      "name": "merchant_product_card_clicks",
+      "type": "integer"
+    },
+    {
+      "column_index": 167,
+      "name": "merchant_product_card_click_rate_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 168,
+      "name": "merchant_product_card_add_to_cart",
+      "type": "integer"
+    },
+    {
+      "column_index": 169,
+      "name": "merchant_product_card_add_to_cart_rate_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 170,
+      "name": "merchant_product_card_ctor_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 171,
+      "name": "merchant_product_card_unique_impressions",
+      "type": "integer"
+    },
+    {
+      "column_index": 172,
+      "name": "merchant_product_card_unique_clicks",
+      "type": "integer"
+    },
+    {
+      "column_index": 173,
+      "name": "merchant_product_card_unique_click_rate_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 174,
+      "name": "merchant_product_card_unique_atc_users",
+      "type": "integer"
+    },
+    {
+      "column_index": 175,
+      "name": "merchant_product_card_unique_atc_rate_official",
+      "type": "rate"
+    },
+    {
+      "column_index": 176,
+      "name": "merchant_product_card_unique_click_conversion_rate_official",
+      "type": "rate"
+    }
+  ]
+}

@@ -1,0 +1,176 @@
+config_version: 1
+modules:
+- 整体经营
+- 广告表现
+- 商品表现
+cards:
+- field: GMV
+  title: GMV
+  module: 整体经营
+  format: currency
+  unit: PHP
+  precision: 2
+  aggregation: SUM
+  fixed_filter:
+    field: 记录类型
+    operator: eq
+    value: 店铺汇总
+- field: 订单数
+  title: 订单数
+  module: 整体经营
+  format: integer
+  unit: null
+  precision: 0
+  aggregation: SUM
+  fixed_filter:
+    field: 记录类型
+    operator: eq
+    value: 店铺汇总
+- field: 客户数
+  title: 客户数
+  module: 整体经营
+  format: integer
+  unit: null
+  precision: 0
+  aggregation: SUM
+  fixed_filter:
+    field: 记录类型
+    operator: eq
+    value: 店铺汇总
+- field: AOV
+  title: AOV（SKU订单口径）
+  module: 整体经营
+  format: currency
+  unit: PHP
+  precision: 2
+  aggregation: SUM
+  fixed_filter:
+    field: 记录类型
+    operator: eq
+    value: 店铺汇总
+- field: 退款金额率
+  title: 退款金额率
+  module: 整体经营
+  format: percent
+  unit: '%'
+  precision: 2
+  aggregation: SUM
+  fixed_filter:
+    field: 记录类型
+    operator: eq
+    value: 店铺汇总
+- field: 广告消耗
+  title: 广告消耗
+  module: 广告表现
+  format: currency
+  unit: USD
+  precision: 2
+  aggregation: SUM
+  fixed_filter:
+    field: 记录类型
+    operator: eq
+    value: 店铺汇总
+- field: 广告收入
+  title: 广告收入
+  module: 广告表现
+  format: currency
+  unit: USD
+  precision: 2
+  aggregation: SUM
+  fixed_filter:
+    field: 记录类型
+    operator: eq
+    value: 店铺汇总
+- field: 实际ROI
+  title: 实际ROI
+  module: 广告表现
+  format: number
+  unit: null
+  precision: 2
+  aggregation: SUM
+  fixed_filter:
+    field: 记录类型
+    operator: eq
+    value: 店铺汇总
+- field: 广告订单
+  title: 广告订单
+  module: 广告表现
+  format: integer
+  unit: null
+  precision: 0
+  aggregation: SUM
+  fixed_filter:
+    field: 记录类型
+    operator: eq
+    value: 店铺汇总
+- field: 平均下单成本
+  title: 平均下单成本
+  module: 广告表现
+  format: currency
+  unit: USD
+  precision: 2
+  aggregation: SUM
+  fixed_filter:
+    field: 记录类型
+    operator: eq
+    value: 店铺汇总
+product_view:
+  component: view
+  columns:
+  - 商品ID
+  - 商品名称
+  - 商品GMV
+  - 商品订单数
+  - 商品实际ROI
+  - 商品退款金额率
+  group_by: null
+  sort:
+    field: 商品GMV
+    direction: desc
+  fixed_filter:
+    field: 记录类型
+    operator: eq
+    value: 商品结果
+  formats:
+    商品GMV:
+      format: currency
+      unit: PHP
+      precision: 2
+    商品订单数:
+      format: integer
+      unit: null
+      precision: 0
+    商品实际ROI:
+      format: number
+      unit: null
+      precision: 2
+    商品退款金额率:
+      format: percent
+      unit: '%'
+      precision: 2
+  preserve_primary_field_if_required: true
+slicers:
+- field: 店铺名称
+  single_select: true
+  source: boss_table
+- field: 统计区间
+  single_select: true
+  source: boss_table
+defaults:
+  shop_policy: explicit_else_agent_select_valid
+  period_order:
+  - field: 统计结束日期
+    direction: desc
+  - field: 统计开始日期
+    direction: asc
+  reset_on_sync: false
+  repair_default_shop_on_rename: true
+  preserve_default_period_on_rename: true
+notes:
+  currency: 经营金额：PHP；广告金额：USD。
+  aov: AOV采用《店铺诊断》已清洗的SKU订单口径结果。
+  selection: 请完整选择一家店铺和一个统计区间；清空筛选后的合计不作为经营结果。
+  empty: 无匹配数据或指标为空时，卡片显示0不一定代表真实业务为0。
+browser:
+  product_view: agent_browser
+  slicers: agent_browser

@@ -1,0 +1,474 @@
+tables:
+  店铺健康明细:
+    output: 店铺健康明细.xlsx
+    builder: shop_health
+    requires_period: false
+    requires_shop_id: true
+    sources: [shop_health_snapshot]
+    columns: [采集时间, 店铺ID, 店铺名称, 类别, 指标, 当前值, 目标条件, 评估开始, 评估结束, 违规次数, 说明]
+    upsert:
+      key: [采集日期, 类别, 指标]
+      derived_key:
+        采集日期: "date(采集时间)"
+      latest_by: 采集时间
+
+  履约表现明细:
+    output: 履约表现明细.xlsx
+    builder: fulfillment
+    requires_period: false
+    requires_shop_id: true
+    sources: [fulfillment_snapshot]
+    columns:
+      - 采集时间
+      - 店铺ID
+      - 店铺名称
+      - 类别
+      - 指标
+      - 当前值
+      - 单位
+      - 较上期变化
+      - 上期值
+      - 行业均值
+      - 行业分类
+      - 评估开始
+      - 评估结束
+      - 指标日期
+      - 分子
+      - 分母
+      - 官方状态
+      - 统计口径
+    upsert:
+      key: [采集日期, 类别, 指标]
+      derived_key:
+        采集日期: "date(采集时间)"
+      latest_by: 采集时间
+
+  退货退款明细:
+    output: 退货退款明细.xlsx
+    builder: refunds
+    requires_period: false
+    requires_shop_id: true
+    sources: [refund_snapshot, order_history]
+    columns:
+      - 采集时间
+      - 店铺ID
+      - 订单ID
+      - 售后单号
+      - 售后申请时间
+      - 售后类型
+      - 售后原因
+      - 客户说明
+      - 订单实付
+      - 退款金额
+      - 处理状态
+      - 退货物流状态
+      - 退货物流时间
+      - 平台标签
+      - 客户凭证数量
+      - 币种
+    upsert:
+      key: [售后单号]
+      latest_by: 采集时间
+
+  订单经营明细:
+    output: 订单经营明细.xlsx
+    builder: orders
+    requires_period: true
+    requires_shop_id: false
+    sources: [order_detail, sku_commercial_status]
+    columns:
+      - 订单ID
+      - 订单状态
+      - 订单子状态
+      - 取消/退货类型
+      - 订单预售类型
+      - 商品ID
+      - SKU ID
+      - 商家SKU
+      - 商品名称
+      - 规格
+      - 数量
+      - 退货SKU数量
+      - SKU原价
+      - SKU折前小计
+      - 平台折扣
+      - 卖家折扣
+      - SKU折后小计
+      - 折后运费
+      - 原始运费
+      - 卖家运费折扣
+      - 平台运费折扣
+      - 支付平台折扣
+      - 税费
+      - 订单金额
+      - 订单退款金额
+      - 创建时间
+      - 支付时间
+      - 备货完成时间
+      - 发货时间
+      - 签收时间
+      - 取消时间
+      - 支付至发货时长
+      - 发货至签收时长
+      - 订单总履约时长
+      - 取消方
+      - 取消原因
+      - 履约类型
+      - 仓库名称
+      - 配送方式
+      - 物流商
+      - 支付方式
+      - 商品类目
+      - 订单渠道
+      - 达人账号
+      - 币种
+    upsert:
+      key: [订单ID, SKU ID]
+
+  商品评价明细:
+    output: 商品评价明细.xlsx
+    builder: ratings
+    requires_period: true
+    requires_shop_id: true
+    sources: [rating_detail]
+    columns: [评价日期, 店铺ID, 商品ID, SKU ID, 订单ID, 评分, 是否差评, 评价内容]
+    upsert:
+      key: [订单ID, 商品ID, SKU ID]
+
+  营销活动明细:
+    output: 营销活动明细.xlsx
+    builder: promotions
+    requires_period: true
+    requires_shop_id: true
+    sources: [promotion_performance]
+    columns:
+      - 统计开始日期
+      - 统计结束日期
+      - 店铺ID
+      - 营销活动ID
+      - 活动名称
+      - 活动状态
+      - 活动类型
+      - 活动开始时间
+      - 活动结束时间
+      - 营销活动GMV
+      - 成交订单数
+      - 商品成交件数
+      - 日均客户数
+      - 笔单价
+      - 折扣金额
+      - 平均折扣率
+      - 营销活动ROI
+      - 每位客户平均GMV
+      - 店铺币种
+    upsert:
+      key: [营销活动ID, 统计开始日期, 统计结束日期]
+
+  广告户诊断:
+    output: 广告户诊断.xlsx
+    builder: advertiser_diagnosis
+    requires_period: true
+    sources: [advertiser_overview, campaign_performance, advertiser_account_status]
+    columns:
+      - 统计开始日期
+      - 统计结束日期
+      - 统计天数
+      - 店铺ID
+      - 店铺名称
+      - 广告户ID
+      - 广告户名称
+      - 计划总数
+      - 运行计划数
+      - 有消耗计划数
+      - 广告总成本
+      - 日均广告成本
+      - 广告展示量
+      - 广告点击量
+      - 广告CTR
+      - 广告CPC
+      - 广告CPM
+      - GMV Max SKU订单数
+      - GMV Max平均下单成本
+      - GMV Max总收入
+      - 实际ROI
+      - 广告币种
+    upsert:
+      key: [广告户ID, 统计开始日期, 统计结束日期]
+
+  素材诊断:
+    output: 素材诊断.xlsx
+    builder: creative_diagnosis
+    requires_period: true
+    sources: [campaign_product_creative_performance, shop_creative_hub_video, campaign_performance, campaign_product_performance, advertiser_account_status]
+    columns:
+      - 统计开始日期
+      - 统计结束日期
+      - 店铺ID
+      - 店铺名称
+      - 广告户ID
+      - 广告户名称
+      - 计划ID
+      - 计划名称
+      - 商品ID
+      - 商品名称
+      - Post ID
+      - 素材标题
+      - TikTok账号
+      - 素材类型
+      - 素材来源
+      - 素材探索状态
+      - 素材探索结果
+      - 授权类型
+      - 授权状态
+      - 预审状态
+      - 发布时间
+      - 广告成本
+      - 成本占计划比
+      - GMV Max SKU订单数
+      - 订单占计划比
+      - GMV Max平均下单成本
+      - GMV Max总收入
+      - 收入占计划比
+      - 实际ROI
+      - 商品广告曝光量
+      - 商品广告点击量
+      - 商品广告点击率
+      - 广告转化率
+      - 2秒广告视频播放率
+      - 6秒广告视频播放率
+      - 25%广告视频播放率
+      - 50%广告视频播放率
+      - 75%广告视频播放率
+      - 100%广告视频播放率
+      - 广告币种
+    upsert:
+      key_variants:
+        - when: {素材类型: Product card}
+          primary_key: [计划ID, 商品ID, 素材类型, 统计开始日期, 统计结束日期]
+          plan_name_fallback: [计划名称, 商品ID, 素材类型, 统计开始日期, 统计结束日期]
+        - default: true
+          primary_key: [计划ID, 商品ID, Post ID, 统计开始日期, 统计结束日期]
+          plan_name_fallback: [计划名称, 商品ID, Post ID, 统计开始日期, 统计结束日期]
+
+  计划配置历史:
+    output: 计划配置历史.xlsx
+    builder: campaign_config_history
+    requires_period: false
+    sources: [campaign_current_config, advertiser_account_status]
+    columns:
+      - 采集日期
+      - 店铺ID
+      - 广告户ID
+      - 计划ID
+      - 计划名称
+      - 目标ROI
+      - 日预算
+      - 预算模式
+      - 优化模式
+      - 自动预算调整开关
+      - 当前有效预算
+      - 促销日设置开关
+      - 促销日ROI
+      - 促销日日预算
+      - 开始时间
+      - 结束时间
+      - 推广商品数
+      - 推广商品ID列表
+      - 视频选择模式
+      - 新素材探索设置
+      - 投放国家
+      - 广告币种
+    upsert:
+      primary_key: [计划ID, 采集日期]
+      plan_name_fallback: [计划名称, 采集日期]
+
+  计划变更记录:
+    output: 计划变更记录.xlsx
+    builder: campaign_changes
+    requires_period: true
+    sources: [campaign_change_log, advertiser_account_status]
+    columns:
+      - 变更时间
+      - 店铺ID
+      - 广告户ID
+      - 计划ID
+      - 计划名称
+      - 变更ID
+      - 对象类型
+      - 对象ID
+      - 操作人
+      - 变更摘要
+      - 变更详情
+      - 广告币种
+    upsert:
+      primary_key: [计划ID, 变更ID]
+      plan_name_fallback: [计划名称, 变更ID]
+
+  广告户状态快照:
+    output: 广告户状态快照.xlsx
+    builder: advertiser_status
+    requires_period: false
+    sources:
+      - advertiser_account_status
+    columns:
+      - 采集日期
+      - 店铺ID
+      - 店铺名称
+      - 广告户ID
+      - 广告户名称
+      - 广告账户状态码
+      - GMV Max授权状态码
+      - CPS授权状态码
+      - 支付账户ID
+      - 支付账户状态码
+      - 支付方式类型
+      - 账户币种
+      - 账户时区
+    upsert:
+      key: [广告户ID, 采集日期]
+
+  计划小时表现:
+    output: 计划小时表现.xlsx
+    builder: campaign_hourly
+    requires_period: true
+    sources:
+      - campaign_hourly
+      - advertiser_account_status
+    columns:
+      - 日期
+      - 小时
+      - 时区
+      - 店铺ID
+      - 广告户ID
+      - 计划ID
+      - 计划名称
+      - 广告成本
+      - 广告展示量
+      - 广告点击量
+      - 广告CTR
+      - 广告CPC
+      - 广告CPM
+      - GMV Max SKU订单数
+      - GMV Max平均下单成本
+      - GMV Max总收入
+      - 实际ROI
+      - 广告币种
+    upsert:
+      primary_key: [计划ID, 日期, 小时]
+      plan_name_fallback: [计划名称, 日期, 小时]
+
+  计划诊断:
+    output: 计划诊断.xlsx
+    builder: campaign_diagnosis
+    requires_period: true
+    sources:
+      - campaign_performance
+      - campaign_current_config
+      - campaign_recommendation_items
+      - campaign_product_performance
+      - campaign_product_creative_performance
+      - advertiser_account_status
+    columns:
+      - 统计开始日期
+      - 统计结束日期
+      - 统计天数
+      - 店铺ID
+      - 店铺名称
+      - 广告户ID
+      - 广告户名称
+      - 计划ID
+      - 计划名称
+      - 计划主状态
+      - 计划状态
+      - 优化状态
+      - 当前优化模式
+      - 当前视频选择模式
+      - 当前新素材探索设置
+      - 目标ROI
+      - 当前日预算
+      - 当前预算模式
+      - 当前开始时间
+      - 当前结束时间
+      - 配置快照日期
+      - ROI建议快照日期
+      - 平台建议ROI
+      - ROI竞争力百分位
+      - 平台建议摘要
+      - 广告成本
+      - 日均广告成本
+      - 广告展示量
+      - 广告点击量
+      - 广告CTR
+      - 广告CPC
+      - 广告CPM
+      - GMV Max SKU订单数
+      - GMV Max平均下单成本
+      - GMV Max总收入
+      - 实际ROI
+      - 推广商品数
+      - 可用素材数
+      - 有消耗素材数
+      - 广告币种
+    upsert:
+      primary_key: [计划ID, 统计开始日期, 统计结束日期]
+      plan_name_fallback: [计划名称, 统计开始日期, 统计结束日期]
+
+  SKU状态库存明细:
+    output: SKU状态库存明细.xlsx
+    builder: sku_inventory
+    requires_period: false
+    sources: [product_status_products, product_status_skus, inventory_snapshot, cost_table]
+    columns:
+      - 快照日期
+      - 店铺ID
+      - 商品ID
+      - 商品名称
+      - SKU ID
+      - 商家SKU
+      - SKU规格
+      - SKU状态
+      - 当前预售状态
+      - 当前售价
+      - 列表价
+      - 售价币种
+      - 总库存
+      - 可用库存
+      - 锁定库存
+      - 库存状态
+      - 近30天销量
+      - 未来30天销量预测
+      - 建议补货数量
+      - 官方可供应天数
+      - 仓库名称
+      - 成本生效日期
+      - 成本币种
+      - 单位采购成本
+      - 单位头程成本
+      - 单位关税及清关成本
+      - 单位包装成本
+      - 平台费率
+      - 单位本地物流成本
+      - 单位仓租分摊
+      - 单位基础成本
+      - 按当前售价估算毛利率
+      - 按当前售价估算保本ROI
+    upsert:
+      key: [SKU ID, 快照日期]
+
+  商品经营诊断:
+    output: 商品经营诊断.xlsx
+    builder: product_diagnosis
+    requires_period: true
+    sources: [product_analytics, product_status_products, product_status_skus, inventory_snapshot, campaign_product_performance, campaign_product_creative_performance, order_detail, rating_detail, cost_table]
+    columns: [统计开始日期, 统计结束日期, 店铺ID, 店铺名称, 商品ID, 商品名称, 商品类目, 商业状态快照日期, 当前商品状态, 当前最低售价, 当前最高售价, 库存快照日期, SKU总数, 在售SKU数, 缺货SKU数, 低库存SKU数, 总库存, 可用库存, 锁定库存, 近30天销量, 最短可供应天数, 商品GMV, 订单数, SKU订单数, 商品成交件数, 客户数, AOV, 商品曝光次数, 商品点击量, 商品点击率, 加购次数, 加购率, CTOR, 退款金额, 退款金额率, 已退款商品件数, 退款件数率, 取消/退货商品件数, 商家视频GMV, 达人归因GMV, 联盟视频GMV, 商品卡GMV, 关联GMV Max计划数, GMV Max广告成本, GMV Max SKU订单数, GMV Max平均下单成本, GMV Max总收入, 实际ROI, GMV Max可用素材数, GMV Max有消耗素材数, 区间新增评价数, 区间新增评价平均分, 区间差评数, 成本覆盖SKU数, 成本覆盖率, 估算商品毛利率, 保本ROI, ROI安全差, 店铺币种, 广告币种, 成本币种]
+    upsert:
+      key: [商品ID, 统计开始日期, 统计结束日期]
+
+  店铺诊断:
+    output: 店铺诊断.xlsx
+    builder: shop_diagnosis
+    requires_period: true
+    sources: [product_analytics, order_detail, advertiser_overview, campaign_performance, product_status_products, inventory_snapshot, shop_health_snapshot, fulfillment_snapshot]
+    columns: [统计开始日期, 统计结束日期, 统计天数, 店铺ID, 店铺名称, 店铺GMV, 订单数, SKU订单数, 商品成交件数, 客户数, AOV, 商品曝光次数, 商品点击量, 商品点击率, 加购次数, 加购率, CTOR, 退款金额, 退款金额率, 已退款商品件数, 取消/退货商品件数, 商家视频GMV, 达人归因GMV, 联盟视频GMV, 商品卡GMV, GMV Max广告总成本, GMV Max SKU订单数, GMV Max总收入, 实际ROI, 计划总数, 运行计划数, 有消耗计划数, 健康快照日期, 账号健康分, 违规分, 商责取消率, 延迟发货率, 商责差评率, 商家责任退货退款率, 履约快照日期, 快速发货率, 待发货至签收平均时长, 在售商品数, 缺货SKU数, 低库存SKU数, 店铺币种, 广告币种]
+    upsert:
+      key: [统计开始日期, 统计结束日期]

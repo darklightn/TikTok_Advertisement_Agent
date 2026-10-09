@@ -1,0 +1,207 @@
+{
+  "schema_version": "tiktok_official_id_association_audit_v1",
+  "audited_at": "2026-08-11",
+  "scope": "cleaned fact datasets only; identity linkage, not attribution or diagnosis",
+  "status_definitions": {
+    "verified": "official ID fields and a non-empty real-data overlap are verified for every listed shop type",
+    "partial": "the official ID path exists, but current real samples do not verify every listed shop type or a non-empty overlap",
+    "blocked": "the datasets expose no defensible direct official-ID relation at the claimed grain"
+  },
+  "relationships": [
+    {
+      "id": "product_to_inventory",
+      "left_dataset": "product_performance_interval",
+      "right_dataset": "inventory_snapshot_fact",
+      "official_join_fields": ["shop_id", "product_id"],
+      "supported_grain": "shop x product identity; inventory may contain many SKU and warehouse rows per product",
+      "cardinality": "one_to_many",
+      "time_scope": "identity link across observations; do not treat product interval and inventory capture time as the same metric period",
+      "currency_scope": "not required for identity; never combine monetary metrics without compatible currency scope",
+      "verified_shop_types": ["cross_border", "local"],
+      "status": "verified",
+      "evidence": [
+        {"shop_type": "cross_border", "left_export_batch_id": "a59814cf-f5af-493b-8870-fbbe48fdeaf1", "right_export_batch_id": "936f3e76-5851-4e07-b9bb-1089163656f9", "left_distinct_ids": 10, "right_distinct_ids": 10, "overlap_distinct_ids": 10},
+        {"shop_type": "local", "left_export_batch_id": "7d32a4ca-631c-487c-9c28-d1ea2dde5505", "right_export_batch_id": "0be4aa0f-601d-4ffe-91c9-cb6bea54dd66", "left_distinct_ids": 22, "right_distinct_ids": 32, "overlap_distinct_ids": 22}
+      ]
+    },
+    {
+      "id": "inventory_to_orders",
+      "left_dataset": "inventory_snapshot_fact",
+      "right_dataset": "order_line_operations",
+      "official_join_fields": ["shop_id", "sku_id"],
+      "supported_grain": "shop x SKU identity; both sides may contain multiple rows across warehouse, order, package, or observation time",
+      "cardinality": "many_to_many",
+      "time_scope": "identity link across observations; inventory state is valid only at captured_at",
+      "currency_scope": "not required for identity; order monetary metrics retain their own currency",
+      "verified_shop_types": ["cross_border", "local"],
+      "status": "verified",
+      "evidence": [
+        {"shop_type": "cross_border", "left_export_batch_id": "936f3e76-5851-4e07-b9bb-1089163656f9", "right_export_batch_id": "770a9d1b-26c0-434e-868c-d431ae5f7128", "left_distinct_ids": 46, "right_distinct_ids": 4, "overlap_distinct_ids": 4},
+        {"shop_type": "local", "left_export_batch_id": "0be4aa0f-601d-4ffe-91c9-cb6bea54dd66", "right_export_batch_id": "72d8bc82-9d1a-4065-8c73-2ccedfc35ed5", "left_distinct_ids": 553, "right_distinct_ids": 62, "overlap_distinct_ids": 62}
+      ]
+    },
+    {
+      "id": "orders_to_returns_refunds",
+      "left_dataset": "order_line_operations",
+      "right_dataset": "returns_refunds_snapshot_fact",
+      "official_join_fields": ["shop_id", "order_id"],
+      "supported_grain": "shop x order identity; an order and an after-sales case may each have multiple fact rows",
+      "cardinality": "many_to_many",
+      "time_scope": "after-sales snapshots are not order-date facts; compare only within an explicitly selected business window",
+      "currency_scope": "currency is not part of identity; reconcile money only when currencies match",
+      "verified_shop_types": ["cross_border", "local"],
+      "status": "verified",
+      "evidence": [
+        {"shop_type": "cross_border", "left_export_batch_id": "a42a71ea-e51e-4df0-a2be-a565d5caf4e5", "right_export_batch_id": "d16f7c2b-ef82-465f-be7c-e8a2dc172e84", "left_distinct_ids": 2165, "right_distinct_ids": 45, "overlap_distinct_ids": 15},
+        {"shop_type": "local", "left_export_batch_id": "def7eb49-4659-4aa5-8c79-96e32d9009b6", "right_export_batch_id": "a1e7be45-06b4-445b-baac-d627f5bc7e0f", "left_distinct_ids": 7515, "right_distinct_ids": 153, "overlap_distinct_ids": 27}
+      ]
+    },
+    {
+      "id": "advertising_to_product",
+      "left_dataset": "gmvmax_campaign_product_interval|creative_product_interval",
+      "right_dataset": "product_performance_interval",
+      "official_join_fields": ["shop_id", "product_id"],
+      "supported_grain": "shop x product identity only; advertising interval metrics remain at campaign-product or video-product grain",
+      "cardinality": "many_to_one",
+      "time_scope": "identity link across intervals; metric periods must be filtered independently",
+      "currency_scope": "identity does not require currency; metric comparison requires compatible currency and interval scope",
+      "verified_shop_types": ["cross_border", "local"],
+      "status": "verified",
+      "evidence": [
+        {"shop_type": "cross_border", "left_export_batch_id": "31d0fd18-325d-40d2-9f55-f3ff07e77461", "right_export_batch_id": "a59814cf-f5af-493b-8870-fbbe48fdeaf1", "advertising_distinct_ids": 2, "product_distinct_ids": 10, "overlap_distinct_ids": 2},
+        {"shop_type": "local", "left_export_batch_id": "0df2b83c-b744-4a89-bb47-bf4547857de0", "right_export_batch_id": "7d32a4ca-631c-487c-9c28-d1ea2dde5505", "advertising_distinct_ids": 21, "product_distinct_ids": 22, "overlap_distinct_ids": 17, "campaign_product_distinct_ids": 17, "campaign_product_overlap_distinct_ids": 17, "creative_product_distinct_ids": 13, "creative_product_overlap_distinct_ids": 9, "note": "four creative product IDs are absent from the later product-performance snapshot and remain unmatched without name fallback"}
+      ]
+    },
+    {
+      "id": "advertising_to_orders_direct",
+      "left_dataset": "gmvmax_campaign_product_interval|creative_product_interval",
+      "right_dataset": "order_line_operations",
+      "official_join_fields": [],
+      "supported_grain": "none for direct attribution",
+      "cardinality": "unsupported",
+      "time_scope": "advertising order metrics use platform attribution semantics and are not shop order rows",
+      "currency_scope": "not applicable",
+      "verified_shop_types": ["cross_border", "local"],
+      "status": "blocked",
+      "capability_status": "verified_unavailable",
+      "applicable_shop_types": ["cross_border", "local"],
+      "blocker": "Bounded cross-border and local source exploration found order/main-order, order-line, SKU and product identity on the shop side, and campaign, product plus aggregate SKU-order metrics on the advertising side, but no official record containing both order identity and advertising identity.",
+      "evidence": [
+        { "shop_type": "cross_border", "observed_at": "2026-08-11", "order_source": "/api/fulfillment/order/list and official Manage Orders CSV", "advertising_source": "GMV Max dashboard and campaign-analysis structured responses", "order_identity_observed": true, "advertising_identity_observed": true, "same_record_common_attribution_key_observed": false },
+        { "shop_type": "local", "observed_at": "2026-08-11", "order_source": "/api/fulfillment/order/list and official Manage Orders CSV", "advertising_source": "GMV Max dashboard and campaign-analysis structured responses", "order_identity_observed": true, "advertising_identity_observed": true, "same_record_common_attribution_key_observed": false }
+      ],
+      "source_capability_contract": "tiktok-shop-data-export/skill/config/stage6-6-7-order-ad-attribution-capability-v1.json",
+      "retry_condition": "An official record or download must expose both stable order identity and advertiser, campaign or creative identity under explicit attribution semantics.",
+      "permitted_context_path": ["advertising.shop_id+product_id", "inventory.shop_id+product_id", "inventory.shop_id+sku_id", "orders.shop_id+sku_id"],
+      "path_semantics": "catalog and SKU context only; never use this path to attribute a shop order to an ad, campaign, or video"
+    },
+    {
+      "id": "campaign_product_creative_to_campaign_product",
+      "left_dataset": "gmvmax_campaign_product_creative_interval",
+      "right_dataset": "gmvmax_campaign_product_interval",
+      "official_join_fields": ["shop_id", "advertiser_id", "campaign_id", "product_id"],
+      "supported_grain": "shop x advertiser x campaign x product identity; creative facts retain one row per creative record and interval",
+      "cardinality": "many_to_one",
+      "time_scope": "identity may be linked across observations; metric comparison additionally requires exact date-range equality",
+      "currency_scope": "identity does not require currency; metric comparison requires equal currency",
+      "verified_shop_types": ["cross_border", "local"],
+      "status": "verified",
+      "evidence": [
+        {
+          "shop_type": "cross_border",
+          "left_export_batch_id": "3c4931b6-7f6a-4363-95bc-d9065bf3b59d",
+          "left_cleaning_batch_id": "5209eba1-a869-57fb-b47f-b56fcd9cef94",
+          "right_export_batch_id": "31d0fd18-325d-40d2-9f55-f3ff07e77461",
+          "left_distinct_ids": 2,
+          "right_distinct_ids": 2,
+          "overlap_distinct_ids": 2,
+          "same_requested_interval": false,
+          "note": "official campaign and workbook Product ID identity overlaps 2/2; differing report intervals prevent direct metric reconciliation"
+        },
+        {
+          "shop_type": "local",
+          "left_export_batch_id": "245601eb-c75b-47af-bbcd-bfea471287f5",
+          "left_cleaning_batch_id": "87ddb197-4369-5faf-a11a-41b3b7270c04",
+          "right_export_batch_id": "0df2b83c-b744-4a89-bb47-bf4547857de0",
+          "right_cleaning_batch_id": "13eeb7bf-456d-5bbc-97f0-992543acc783",
+          "left_distinct_ids": 17,
+          "right_distinct_ids": 17,
+          "overlap_distinct_ids": 17,
+          "same_requested_interval": false,
+          "note": "official campaign and product identity overlaps 17/17; differing report intervals prevent direct metric reconciliation"
+        }
+      ]
+    },
+    {
+      "id": "creative_to_campaign_direct",
+      "left_dataset": "creative_product_interval",
+      "right_dataset": "gmvmax_campaign_product_interval",
+      "official_join_fields": [],
+      "supported_grain": "none",
+      "cardinality": "unsupported",
+      "time_scope": "not applicable",
+      "currency_scope": "not applicable",
+      "verified_shop_types": [],
+      "status": "blocked",
+      "blocker": "creative exports and the live official post_video_list response contain no stable campaign_id relation",
+      "evidence": [
+        {"shop_type": "local", "observed_at": "2026-08-03", "seller_id": "7496176775586483191", "advertiser_id": "7660415030180216840", "requested_start_date": "2026-07-20", "requested_end_date": "2026-07-20", "endpoint": "post_video_list", "official_total_count": 3920, "observed_page_rows": 20, "observed_identity_fields": ["item_id", "spu_id", "pre_item_id"], "campaign_identity_field_observed": false}
+      ]
+    },
+    {
+      "id": "campaign_creative_to_official_video",
+      "left_dataset": "gmvmax_campaign_product_creative_interval|gmvmax_campaign_product_creative_daily",
+      "right_datasets": [
+        "shop_video_performance",
+        "creative_product_interval"
+      ],
+      "official_join_fields": [
+        "shop_id",
+        "post_id=video_id"
+      ],
+      "supported_grain": "shop x official TikTok post identity within exact requested ranges; campaign relations remain separate rows",
+      "cardinality": "many_to_many",
+      "time_scope": "both sources must use the exact same requested range; absence is only within the selected complete campaign universe and declared official-video source range",
+      "currency_scope": "not required for identity; advertising and shop metrics retain their own currency scopes",
+      "verified_shop_types": [
+        "cross_border",
+        "local"
+      ],
+      "status": "verified",
+      "fallback_fields_forbidden": [
+        "title",
+        "creator handle",
+        "publish time"
+      ],
+      "evidence": [
+        {
+          "shop_type": "cross_border",
+          "requested_start_date": "2026-08-01",
+          "requested_end_date": "2026-08-06",
+          "campaign_creative_distinct_video_ids": 54,
+          "official_video_source_report_id": "shop_creative_hub_video",
+          "official_video_source_rows": 49,
+          "official_video_distinct_ids": 48,
+          "overlap_distinct_ids": 48,
+          "multi_campaign_video_ids": 1,
+          "unmatched_campaign_video_ids": 6,
+          "product_card_rows": 12,
+          "note": "48/48 official creative-catalog video IDs overlap campaign creative post IDs; six campaign video IDs remain scoped unmatched, not globally unused"
+        },
+        {
+          "shop_type": "local",
+          "requested_start_date": "2026-08-01",
+          "requested_end_date": "2026-08-06",
+          "campaign_creative_distinct_video_ids": 4316,
+          "official_video_source_report_id": "shop_video_performance",
+          "official_video_source_rows": 57,
+          "official_video_distinct_ids": 57,
+          "overlap_distinct_ids": 57,
+          "multi_campaign_video_ids": 3,
+          "product_card_rows": 102,
+          "note": "57/57 official shop-video IDs matched by post ID; three videos were observed in two campaigns and remain multiple relations"
+        }
+      ]
+    }
+  ]
+}

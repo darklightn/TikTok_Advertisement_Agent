@@ -1,0 +1,560 @@
+# 清洗字段来源关联与处理规则
+
+## 一、统一清洗规则
+
+1. 所有 ID 统一按文本保存，去除首尾空白和制表符，不能转科学计数法、不能丢精度。
+2. 所有金额统一保存为纯数值，币种单独使用币种字段，不保留“₱22,371.37”这类带符号字符串。
+3. CTR、CTOR、加购率、退款率、毛利率、视频播放率等比例类指标，底层统一保存为 0—1 小数并显示为百分比；ROI / ROAS 保持倍率，不转换为百分比。
+4. 不同原始字段的百分比表达方式必须按“原始数据源 + 原始字段”建立固定转换规则，不能仅根据数值大小判断是否除以100。
+5. 空值与0严格区分：没有指标、不适用、无法确定时保留空值；真实发生值为0时保留0。
+6. 所有区间型清洗表必须写入统计开始日期和统计结束日期；所有快照型清洗表必须写入实际采集日期或快照日期。
+7. 所有比率、单价、均值、CPC、CPM、CPO、ROI、CTOR等衍生指标，在跨行、跨日、跨对象汇总时，必须先汇总基础分子和分母再重新计算，禁止直接平均已有结果；无法取得基础量时优先使用平台对应统计粒度的官方值，仍无法取得时留空。
+8. 订单经营明细以“订单 × SKU行”为粒度。同一 Order ID 存在多个 SKU 行时，SKU级字段按SKU行正常统计；订单级金额、优惠、运费等字段在汇总时按 Order ID 去重，同一订单只计算一次。
+9. `-`、`N/A`、`NaN`文本、空字符串及明确不适用值按字段语义转为空值，不通用转换为0。
+10. JSON路径使用点号表示，数组使用 `[]`；存在报表说明行或多级表头时按表头锚点定位真实表头，不依赖固定行号。
+11. 商品分析表现的重复字段必须结合上层分组生成唯一字段名，例如 `全部.GMV`、`全部.商品点击量`；商品名、商品ID、GMV区间、发品状态保持原字段名。
+12. 清洗表之间不互相作为数据源；每张清洗表只读取已经固定的原始导出表、运行参数/上下文及必要人工录入数据。
+13. 区间型原始报表只读取与本次清洗 `start_date + end_date` 完全匹配的文件，不拼接其他包含、被包含或部分重叠的区间文件；精确区间文件不存在时报告缺少原始数据。
+14. `GMV Max 计划小时表现`为区间文件选择的例外：按计划 × 日期逐日读取目标日期范围内已经导出的全部日文件并合并。
+15. `GMV Max 建议快照`当前只读取 `items` 文件：同一计划选择最新的 `计划名称__items__采集日期.xlsx`。`summary` 文件当前不参与清洗。缺少 `items` 文件时按缺少原始数据处理并阻断本次计划诊断；`items` 文件存在但没有 ROI 建议时，不阻断计划诊断。
+16. 人工成本表中，成本字段留空表示“未知”；真实没有该项成本必须明确填写 `0`。任一必需成本项为空时，单位基础成本及其派生毛利率、保本ROI留空。
+17. 所有自行计算的除法类指标统一遵守：分母为0或空时结果留空；分母>0且分子为0时结果为0。不得产生除零错误。
+18. `退货退款明细`关联订单历史时，搜索当前店铺 `店铺数据/订单明细/` 下已经存在的全部历史订单文件；同一 Order ID 在多个文件中金额一致则视为同一订单，金额冲突则订单实付留空并记录冲突，完全找不到则订单实付留空。
+
+
+## 二、广告户诊断
+
+字段映射表
+
+| 清洗字段 | 原始文件 | 原始字段 | 关联键 | 处理方式 |
+|---|---|---|---|---|
+| 统计开始日期 | 运行参数（非导出表） | start_date | — | 直接写入清洗指令的开始日期。 |
+| 统计结束日期 | 运行参数（非导出表） | end_date | — | 直接写入清洗指令的结束日期。 |
+| 统计天数 | 运行参数（非导出表） | start_date、end_date | — | 按自然日含首尾计算：end_date - start_date + 1。 |
+| 店铺ID | 广告户数据/广告账户状态 | account_snapshot_json.frozen_identity.seller_id | — | 解析 JSON；转文本。 |
+| 店铺名称 | 运行上下文（非导出表） | shop_root 末级目录名 | — | 直接写入所选店铺目录名称。 |
+| 广告户ID | 广告户数据/广告账户状态 | advertiser_id | — | 使用最新广告账户状态快照；转文本。 |
+| 广告户名称 | 广告户数据/广告账户状态 | advertiser_name | advertiser_id | 直接读取。 |
+| 计划总数 | 计划数据/GMV Max 计划表现 | campaign_id | advertiser_id | 对本次日期范围内已读取的计划记录按 campaign_id 去重计数。 |
+| 运行计划数 | 计划数据/GMV Max 计划表现 | campaign_id、campaign_primary_status、campaign_status | advertiser_id | 按 campaign_id 去重；仅计 campaign_primary_status=delivery_ok 且 campaign_status=campaign_delivery_ok 的计划。 |
+| 有消耗计划数 | 计划数据/GMV Max 计划表现 | campaign_id、cost | advertiser_id | 按 campaign_id 聚合 cost 后，统计 cost>0 的计划数。 |
+| 广告总成本 | 广告户数据/GMV Max 计划总览 | 成本 | — | 优先读取时间/按天列为“-”的总计行；若无总计行，再汇总非总计明细行。金额转数值。 |
+| 日均广告成本 | 计算字段 | 广告总成本、统计天数 | — | 广告总成本 ÷ 统计天数；统计天数为0时留空。 |
+| 广告展示量 | 计划数据/GMV Max 计划表现 | show_cnt | advertiser_id | 所有计划先求和，转整数。 |
+| 广告点击量 | 计划数据/GMV Max 计划表现 | click_cnt | advertiser_id | 所有计划先求和，转整数。 |
+| 广告CTR | 计算字段 | 广告点击量、广告展示量 | — | 广告点击量 ÷ 广告展示量；底层保存小数，Excel显示百分比。 |
+| 广告CPC | 计算字段 | 广告总成本、广告点击量 | — | 广告总成本 ÷ 广告点击量；点击量为0时留空。 |
+| 广告CPM | 计算字段 | 广告总成本、广告展示量 | — | 广告总成本 ÷ 广告展示量 × 1000；展示量为0时留空。 |
+| GMV Max SKU订单数 | 广告户数据/GMV Max 计划总览 | SKU orders (Current shop) | — | 读取总计行；若无总计行则汇总明细行。 |
+| GMV Max平均下单成本 | 计算字段 | 广告总成本、GMV Max SKU订单数 | — | 广告总成本 ÷ GMV Max SKU订单数；订单数为0时留空，不平均原始 CPO。 |
+| GMV Max总收入 | 广告户数据/GMV Max 计划总览 | Gross revenue (Current shop) | — | 读取总计行；若无总计行则汇总明细行。金额转数值。 |
+| 实际ROI | 计算字段 | GMV Max总收入、广告总成本 | — | GMV Max总收入 ÷ 广告总成本；成本为0时留空，不平均原始 ROI。 |
+| 广告币种 | 广告户数据/GMV Max 计划总览 | 币种 | — | 去重后应为单一币种；直接写入 ISO 币种代码。 |
+
+## 三、计划诊断
+
+字段映射表
+
+| 清洗字段 | 原始文件 | 原始字段 | 关联键 | 处理方式 |
+|---|---|---|---|---|
+| 统计开始日期 | 运行参数（非导出表） | start_date | — | 直接写入清洗指令的开始日期。 |
+| 统计结束日期 | 运行参数（非导出表） | end_date | — | 直接写入清洗指令的结束日期。 |
+| 统计天数 | 运行参数（非导出表） | start_date、end_date | — | 按自然日含首尾计算：end_date - start_date + 1。 |
+| 店铺ID | 广告户数据/广告账户状态 | account_snapshot_json.frozen_identity.seller_id | — | 解析最新广告账户状态 JSON；转文本。 |
+| 店铺名称 | 运行上下文（非导出表） | shop_root 末级目录名 | — | 直接写入所选店铺目录名称。 |
+| 广告户ID | 广告户数据/广告账户状态 | advertiser_id | — | 使用最新快照；转文本。 |
+| 广告户名称 | 广告户数据/广告账户状态 | advertiser_name | advertiser_id | 直接读取。 |
+| 计划ID | 计划数据/GMV Max 计划表现 | campaign_id | — | 直接读取；转文本。 |
+| 计划名称 | 计划数据/GMV Max 计划表现 | campaign_name | campaign_id | 直接读取。 |
+| 计划主状态 | 计划数据/GMV Max 计划表现 | campaign_primary_status | campaign_id | 保留原始状态枚举；不自行翻译未知枚举。 |
+| 计划状态 | 计划数据/GMV Max 计划表现 | campaign_status | campaign_id | 保留原始状态枚举。 |
+| 优化状态 | 计划数据/GMV Max 计划表现 | campaign_opt_status | campaign_id | 保留原始状态枚举。 |
+| 当前优化模式 | 计划数据/GMV Max 计划表现 | current_optimization_mode | campaign_id | 保留原始枚举值。 |
+| 当前视频选择模式 | 计划数据/GMV Max 当前配置 | configuration_json.ad_info.product_video_selection_type | campaign_id | 解析最新配置 JSON；保留原始枚举值。 |
+| 当前新素材探索设置 | 计划数据/GMV Max 当前配置 | configuration_json.ad_info.shop_new_creative_exploration | campaign_id | 解析最新配置 JSON；保留原始枚举值。 |
+| 目标ROI | 计划数据/GMV Max 当前配置 | configuration_json.ad_info.roas_bid | campaign_id | 解析最新配置 JSON；按倍率保存。 |
+| 当前日预算 | 计划数据/GMV Max 当前配置 | configuration_json.ad_info.budget | campaign_id | 解析最新配置 JSON；金额转数值。 |
+| 当前预算模式 | 计划数据/GMV Max 当前配置 | configuration_json.ad_info.budget_mode | campaign_id | 保留原始枚举值。 |
+| 当前开始时间 | 计划数据/GMV Max 当前配置 | configuration_json.ad_info.start_time | campaign_id | 转标准日期时间。 |
+| 当前结束时间 | 计划数据/GMV Max 当前配置 | configuration_json.ad_info.end_time | campaign_id | 转标准日期时间。 |
+| 配置快照日期 | 计划数据/GMV Max 当前配置 | captured_date | campaign_id | 直接读取。 |
+| ROI建议快照日期 | 导出文件名（非表内字段） | 计划名称__items__YYYY-MM-DD.xlsx | campaign_id | 对同一计划选择最新的 items 文件并从文件名解析采集日期。items 文件缺失时按缺少原始数据处理；items 文件存在时，即使 items_json 中没有 ROI 建议，本字段仍写入该 items 文件日期。 |
+| 平台建议ROI | 计划数据/GMV Max 建议快照（items） | items_json[].content.meta.roas_bid | campaign_id | 在 items_json 中选择 to_update_fields 包含 roas_bid 的建议项；按倍率保存。items 文件存在但没有匹配的 ROI 建议项时留空，不影响计划诊断其他字段生成。 |
+| ROI竞争力百分位 | 计划数据/GMV Max 建议快照（items） | items_json[].content.meta.compete_percentile | campaign_id | 选择与平台建议ROI相同的 ROI 建议项；原始 68/96 等转换为 68%/96% 显示，底层保存 0.68/0.96。没有匹配建议项时留空。 |
+| 平台建议摘要 | 计划数据/GMV Max 建议快照（items） | items_json[].content.title、content.content、content.starling[]、content.meta | campaign_id | 定位与所选ROI建议项对应的 title/content 和 starling 文本，使用该建议项 meta 中已有值替换可确认的占位符；标题与正文以“；”连接。没有匹配建议项时留空；不读取 summary_json。 |
+| 广告成本 | 计划数据/GMV Max 计划表现 | cost | campaign_id | 金额转数值。 |
+| 日均广告成本 | 计算字段 | 广告成本、统计天数 | campaign_id | 广告成本 ÷ 统计天数。 |
+| 广告展示量 | 计划数据/GMV Max 计划表现 | show_cnt | campaign_id | 转整数。 |
+| 广告点击量 | 计划数据/GMV Max 计划表现 | click_cnt | campaign_id | 转整数。 |
+| 广告CTR | 计算字段 | 广告点击量、广告展示量 | campaign_id | 点击量 ÷ 展示量；不直接采用或平均原始 ctr。 |
+| 广告CPC | 计算字段 | 广告成本、广告点击量 | campaign_id | 广告成本 ÷ 广告点击量；点击量为0时留空。 |
+| 广告CPM | 计算字段 | 广告成本、广告展示量 | campaign_id | 广告成本 ÷ 广告展示量 × 1000；展示量为0时留空。 |
+| GMV Max SKU订单数 | 计划数据/GMV Max 计划表现 | onsite_roi2_shopping_sku | campaign_id | 转整数。 |
+| GMV Max平均下单成本 | 计算字段 | 广告成本、GMV Max SKU订单数 | campaign_id | 广告成本 ÷ SKU订单数；不直接平均原始 cost_per_onsite_roi2_shopping_sku。 |
+| GMV Max总收入 | 计划数据/GMV Max 计划表现 | onsite_roi2_shopping_value | campaign_id | 金额转数值。 |
+| 实际ROI | 计算字段 | GMV Max总收入、广告成本 | campaign_id | 总收入 ÷ 广告成本；成本为0时留空。 |
+| 推广商品数 | 计划数据/GMV Max 计划商品表现 | Product ID | campaign_name（由文件名解析） | 同一计划内按 Product ID 去重计数。 |
+| 可用素材数 | 计划数据/GMV Max 计划商品素材表现 | product_id、Post ID、Creative type、Status | campaign_name（由文件名解析） | Status 为“已探索”或“探索中”时计入。内部素材键：Video=`计划ID+商品ID+Post ID`；Product card=`计划ID+商品ID+Creative type`。Product card 输出Post ID仍为空。 |
+| 有消耗素材数 | 计划数据/GMV Max 计划商品素材表现 | product_id、Post ID、Creative type、成本 | campaign_name（由文件名解析） | 使用与“可用素材数”完全相同的内部素材键去重并聚合，再统计聚合成本>0的素材。 |
+| 广告币种 | 计划数据/GMV Max 计划表现 | currency | campaign_id | 直接读取 ISO 币种代码。 |
+
+## 四、素材诊断
+
+字段映射表
+
+| 清洗字段 | 原始文件 | 原始字段 | 关联键 | 处理方式 |
+|---|---|---|---|---|
+| 统计开始日期 | 运行参数（非导出表） | start_date | — | 直接写入。 |
+| 统计结束日期 | 运行参数（非导出表） | end_date | — | 直接写入。 |
+| 店铺ID | 广告户数据/广告账户状态 | account_snapshot_json.frozen_identity.seller_id | — | 解析最新广告账户状态 JSON；转文本。 |
+| 店铺名称 | 运行上下文（非导出表） | shop_root 末级目录名 | — | 直接写入。 |
+| 广告户ID | 广告户数据/广告账户状态 | advertiser_id | — | 直接读取最新快照。 |
+| 广告户名称 | 广告户数据/广告账户状态 | advertiser_name | advertiser_id | 直接读取。 |
+| 计划ID | 计划数据/GMV Max 计划表现 | campaign_id | campaign_name | 从素材表现文件名解析计划名称，再与计划表现 campaign_name 关联取得。 |
+| 计划名称 | 导出文件名（非表内字段） | 素材表现文件名中计划名称部分 | — | 按导出命名规则解析；并与计划表现 campaign_name 校验。 |
+| 商品ID | 计划数据/GMV Max 计划商品素材表现；计划数据/GMV Max 计划商品表现；导出文件名（非表内字段） | product_id；Product ID；素材文件商品上下文 | campaign_name + 文件商品上下文 | 优先直接读取素材表现中的 product_id；缺失时，从所属计划上下文和素材文件名取得商品上下文，仅在同一计划的计划商品表现中做商品名称精确匹配；唯一命中时取得Product ID，0个或多个命中均留空，不模糊猜配。转文本。 |
+| 商品名称 | 计划数据/GMV Max 计划商品表现；导出文件名（非表内字段） | 商品名称；素材表现文件名中的商品名称部分 | campaign_name + Product ID | 优先按计划名称+商品ID关联计划商品表现取得完整商品名称；无法关联时使用文件名中的商品名称。 |
+| Post ID | 计划数据/GMV Max 计划商品素材表现 | Post ID | Video内部键：计划ID+商品ID+Post ID；Product card内部键：计划ID+商品ID+Creative type | 转文本；Product card、`N/A`、`-`写空值。Product card虽然输出Post ID为空，但内部仍使用独立素材键进行去重、累计与Upsert。 |
+| 素材标题 | 计划数据/GMV Max 计划商品素材表现；店铺数据/店铺素材中心视频 | Creative；视频标题 | Post ID + Product ID | 优先 Creative；为空或“-”时使用素材中心视频标题。 |
+| TikTok账号 | 计划数据/GMV Max 计划商品素材表现；店铺数据/店铺素材中心视频 | TikTok account；Username | Post ID + Product ID | 优先素材表现账号；为空或“-”时使用素材中心 Username；不靠账号名关联。 |
+| 素材类型 | 计划数据/GMV Max 计划商品素材表现 | Creative type | Post ID / Product card | 直接读取。 |
+| 素材来源 | 计划数据/GMV Max 计划商品素材表现；店铺数据/店铺素材中心视频 | Creative source；Video source | Post ID + Product ID | 优先 Creative source；为空或“-”时使用 Video source；仍无值则留空。 |
+| 素材探索状态 | 计划数据/GMV Max 计划商品素材表现 | Status | Post ID / Product card | 直接读取文本状态。 |
+| 素材探索结果 | 计划数据/GMV Max 计划商品素材表现 | Exploration secondary status | Post ID / Product card | 直接读取文本结果。 |
+| 授权类型 | 店铺数据/店铺素材中心视频 | Authorization type | Post ID + Product ID | 仅视频素材可关联；Product card 留空。 |
+| 授权状态 | 店铺数据/店铺素材中心视频 | Authorization status | Post ID + Product ID | 仅视频素材可关联；Product card 留空。 |
+| 预审状态 | 店铺数据/店铺素材中心视频 | Pre-review status | Post ID + Product ID | “-”转换为空值；Product card 留空。 |
+| 发布时间 | 计划数据/GMV Max 计划商品素材表现；店铺数据/店铺素材中心视频 | Time posted；Time posted | Post ID + Product ID | 优先素材表现时间；为空或“-”时使用素材中心时间；转标准日期时间。 |
+| 广告成本 | 计划数据/GMV Max 计划商品素材表现 | 成本 | Post ID / Product card | 金额转数值。 |
+| 成本占计划比 | 计算字段 | 素材广告成本、计划表现.cost | campaign_id | 素材广告成本 ÷ 对应计划广告成本；计划成本为0时留空。 |
+| GMV Max SKU订单数 | 计划数据/GMV Max 计划商品素材表现 | SKU 订单数 | Post ID / Product card | 转整数。 |
+| 订单占计划比 | 计算字段 | 素材SKU订单数、计划表现.onsite_roi2_shopping_sku | campaign_id | 素材订单数 ÷ 对应计划订单数；计划订单数为0时留空。 |
+| GMV Max平均下单成本 | 计算字段 | 素材广告成本、素材SKU订单数 | Post ID / Product card | 素材广告成本 ÷ 素材SKU订单数；订单数为0时留空。 |
+| GMV Max总收入 | 计划数据/GMV Max 计划商品素材表现 | 总收入 | Post ID / Product card | 金额转数值。 |
+| 收入占计划比 | 计算字段 | 素材总收入、计划表现.onsite_roi2_shopping_value | campaign_id | 素材总收入 ÷ 对应计划总收入；计划收入为0时留空。 |
+| 实际ROI | 计算字段 | 素材总收入、素材广告成本 | Post ID / Product card | 总收入 ÷ 成本；成本为0时留空。 |
+| 商品广告曝光量 | 计划数据/GMV Max 计划商品素材表现 | Product ad impressions | Post ID / Product card | 转整数。 |
+| 商品广告点击量 | 计划数据/GMV Max 计划商品素材表现 | Product ad clicks | Post ID / Product card | 转整数。 |
+| 商品广告点击率 | 计算字段 | 商品广告点击量、商品广告曝光量 | Post ID / Product card | 点击量 ÷ 曝光量；曝光量为0或空时留空；曝光量>0且点击量为0时结果为0。不直接采用不同格式的原始率。 |
+| 广告转化率 | 计划数据/GMV Max 计划商品素材表现 | Ad conversion rate | Post ID / Product card | 当前该原始字段已为0—1小数，直接保留原值，不除以100；Excel按百分比显示。`-`、N/A、空字符串转空值；不自行用订单/点击重算。 |
+| 2秒广告视频播放率 | 计划数据/GMV Max 计划商品素材表现 | 2-second ad video view rate | Post ID | 当前该原始字段已为0—1小数，直接保留原值，不除以100；Excel按百分比显示。`-`、N/A、空字符串或Product card不适用时留空。 |
+| 6秒广告视频播放率 | 计划数据/GMV Max 计划商品素材表现 | 6-second ad video view rate | Post ID | 当前该原始字段已为0—1小数，直接保留原值，不除以100；Excel按百分比显示。`-`、N/A、空字符串或Product card不适用时留空。 |
+| 25%广告视频播放率 | 计划数据/GMV Max 计划商品素材表现 | 25% ad video view rate | Post ID | 当前该原始字段已为0—1小数，直接保留原值，不除以100；Excel按百分比显示。`-`、N/A、空字符串或Product card不适用时留空。 |
+| 50%广告视频播放率 | 计划数据/GMV Max 计划商品素材表现 | 50% ad video view rate | Post ID | 当前该原始字段已为0—1小数，直接保留原值，不除以100；Excel按百分比显示。`-`、N/A、空字符串或Product card不适用时留空。 |
+| 75%广告视频播放率 | 计划数据/GMV Max 计划商品素材表现 | 75% ad video view rate | Post ID | 当前该原始字段已为0—1小数，直接保留原值，不除以100；Excel按百分比显示。`-`、N/A、空字符串或Product card不适用时留空。 |
+| 100%广告视频播放率 | 计划数据/GMV Max 计划商品素材表现 | 100% ad video view rate | Post ID | 当前该原始字段已为0—1小数，直接保留原值，不除以100；Excel按百分比显示。`-`、N/A、空字符串或Product card不适用时留空。 |
+| 广告币种 | 计划数据/GMV Max 计划商品素材表现 | Currency | Post ID / Product card | 直接读取 ISO 币种代码。 |
+
+## 五、商品经营诊断
+
+字段映射表
+
+| 清洗字段 | 原始文件 | 原始字段 | 关联键 | 处理方式 |
+|---|---|---|---|---|
+| 统计开始日期 | 运行参数（非导出表） | start_date | — | 直接写入。 |
+| 统计结束日期 | 运行参数（非导出表） | end_date | — | 直接写入。 |
+| 店铺ID | 店铺数据/商品与SKU商业状态快照（products） | product_record_json.seller_id | Product ID | 从最新 products 快照解析；若该商品快照缺失，使用运行上下文中的已绑定店铺ID。 |
+| 店铺名称 | 运行上下文（非导出表） | shop_root 末级目录名 | — | 直接写入。 |
+| 商品ID | 店铺数据/商品分析表现；计划数据/GMV Max 计划商品表现；店铺数据/商品与SKU商业状态快照（products） | 商品 ID；Product ID；product_id、lifecycle_status、visible_status.is_visible | Product ID | 以“商品分析表现商品 ∪ GMV Max计划商品表现商品 ∪ 最新products快照中的当前可售商品”建立本次商品行。当前可售但区间无销售/广告的商品仍保留；历史区间有表现但当前已下架/删除的商品也因前两类来源保留。没有区间记录不等于0，无法证明为0的区间指标保持空值。转文本。 |
+| 商品名称 | 店铺数据/商品与SKU商业状态快照（products）；店铺数据/商品分析表现；计划数据/GMV Max 计划商品表现 | product_record_json.product_name；商品名；商品名称 | Product ID | 按 products快照→商品分析→计划商品表现的优先级取首个有效值。 |
+| 商品类目 | 店铺数据/商品与SKU商业状态快照（products） | product_record_json.categories[] | Product ID | 选择 is_leaf=true 的类目名称；若无叶子类目，取 level 最大项。 |
+| 商业状态快照日期 | 导出文件名（非表内字段） | products__YYYY-MM-DD.xlsx / skus__YYYY-MM-DD.xlsx 文件名日期 | Product ID | 读取本次采用的最新 products/skus 同日期商业状态快照日期。该日期只约束商业状态与成本生效截止日，不要求与库存快照日期相同。 |
+| 当前商品状态 | 店铺数据/商品与SKU商业状态快照（products） | lifecycle_status、product_record_json.visible_status.is_visible | Product ID | lifecycle_status 为 delisted/draft/deleted 时分别输出“已下架/草稿/已删除”；其余记录 visible=true 输出“可售”，visible=false 输出“不可见”；无法判断时保留 product_record_json.product_status 原始码。 |
+| 当前最低售价 | 店铺数据/商品与SKU商业状态快照（products） | product_record_json.price_range.min_promotion_price / min_sale_price | Product ID | 优先有效促销最低价；无促销价时使用最低销售价；金额转数值。 |
+| 当前最高售价 | 店铺数据/商品与SKU商业状态快照（products） | product_record_json.price_range.max_promotion_price / max_sale_price | Product ID | 优先有效促销最高价；无促销价时使用最高销售价。 |
+| 库存快照日期 | 导出文件名（非表内字段） | 库存快照/YYYY-MM-DD.xlsx 文件名日期 | Product ID | 写入本次采用的最新库存快照日期。 |
+| SKU总数 | 店铺数据/商品与SKU商业状态快照（products） | product_record_json.total_sku_count | Product ID | 直接读取；若缺失则按 skus 快照中 SKU ID 去重计数。 |
+| 在售SKU数 | 店铺数据/商品与SKU商业状态快照（products） | 当前商品状态、product_record_json.total_sku_count、inactive_sku_count | Product ID | 先应用商品状态门禁：当前商品状态不是“可售”时，在售SKU数直接为0；当前商品状态为“可售”时，计算 `max(total_sku_count - inactive_sku_count, 0)`。 |
+| 缺货SKU数 | 店铺数据/库存快照 | SKU ID、库存状态（计算）、可用库存 | Product ID | 按 SKU ID 去重；库存状态=缺货或可用库存<=0的SKU计数。 |
+| 低库存SKU数 | 店铺数据/库存快照 | SKU ID、库存状态（计算） | Product ID | 按 SKU ID 去重；仅统计库存状态=需关注，不含缺货。 |
+| 总库存 | 店铺数据/库存快照 | 总库存 | Product ID | 按商品汇总所有SKU。 |
+| 可用库存 | 店铺数据/库存快照 | 可用库存 | Product ID | 按商品汇总所有SKU。 |
+| 锁定库存 | 店铺数据/库存快照 | 锁定库存 | Product ID | 按商品汇总所有SKU。 |
+| 近30天销量 | 店铺数据/库存快照 | 近30天销量 | Product ID | 按商品汇总所有SKU。 |
+| 最短可供应天数 | 店铺数据/库存快照 | 官方可供应天数 | Product ID | 解析数字与“>60”；存在数字时取最小数字；仅有“>60”时输出“>60”；无有效值留空。 |
+| 商品GMV | 店铺数据/商品分析表现 | 全部.GMV | 商品 ID | 去除币种符号和千分位后转数值。 |
+| 订单数 | 店铺数据/商品分析表现 | 全部.订单数 | 商品 ID | 转整数。 |
+| SKU订单数 | 店铺数据/商品分析表现 | 全部.SKU 订单数 | 商品 ID | 转整数。 |
+| 商品成交件数 | 店铺数据/商品分析表现 | 全部.商品成交件数 | 商品 ID | 转整数。 |
+| 客户数 | 店铺数据/商品分析表现 | 全部.预计客户数 | 商品 ID | 直接读取官方预计客户数。 |
+| AOV | 计算字段 | 商品GMV、SKU订单数 | Product ID | 商品GMV ÷ SKU订单数；SKU订单数为0时留空，不平均原始AOV。 |
+| 商品曝光次数 | 店铺数据/商品分析表现 | 全部.商品曝光次数 | 商品 ID | 转整数。 |
+| 商品点击量 | 店铺数据/商品分析表现 | 全部.商品点击量 | 商品 ID | 转整数。 |
+| 商品点击率 | 计算字段 | 商品点击量、商品曝光次数 | Product ID | 商品点击量 ÷ 商品曝光次数；商品曝光次数为0或空时留空；曝光次数>0且点击量为0时结果为0。 |
+| 加购次数 | 店铺数据/商品分析表现 | 全部.加购次数 | 商品 ID | 转整数。 |
+| 加购率 | 计算字段 | 加购次数、商品点击量 | Product ID | 加购次数 ÷ 商品点击量；点击量为0时留空。 |
+| CTOR | 计算字段 | SKU订单数、商品点击量 | Product ID | SKU订单数 ÷ 商品点击量；点击量为0时留空。 |
+| 退款金额 | 店铺数据/商品分析表现 | 全部.退款金额 | 商品 ID | 金额转数值。 |
+| 退款金额率 | 计算字段 | 退款金额、商品GMV | Product ID | 退款金额 ÷ 商品GMV；GMV为0时留空。 |
+| 已退款商品件数 | 店铺数据/商品分析表现 | 全部.已退款的商品件数 | 商品 ID | 转整数。 |
+| 退款件数率 | 计算字段 | 已退款商品件数、商品成交件数 | Product ID | 已退款商品件数 ÷ 商品成交件数；成交件数为0时留空。 |
+| 取消/退货商品件数 | 店铺数据/订单明细；店铺数据/商品与SKU商业状态快照（skus） | Quantity、Sku Quantity of return、Cancelled Time、Order Status；product_id | Order ID + SKU ID；SKU ID→Product ID | 订单事实表保持 `Order ID + SKU ID` 粒度逐行累计，不按 SKU ID 去重。先保证用于关联的SKU维表每个SKU ID仅保留一条有效映射，再按SKU ID补Product ID，防止维表多行把订单事实行扩增。取消订单累计该事实行Quantity；非取消订单累计该事实行Sku Quantity of return；最后按Product ID求和。 |
+| 商家视频GMV | 店铺数据/商品分析表现 | 全部.商家视频 GMV | 商品 ID | 金额转数值。 |
+| 达人归因GMV | 店铺数据/商品分析表现 | 全部.达人归因 GMV | 商品 ID | 金额转数值。 |
+| 联盟视频GMV | 店铺数据/商品分析表现 | 全部.联盟视频商品交易总额 | 商品 ID | 金额转数值。 |
+| 商品卡GMV | 店铺数据/商品分析表现 | 全部.商家商品卡 GMV | 商品 ID | 金额转数值。 |
+| 关联GMV Max计划数 | 计划数据/GMV Max 计划商品表现 | Product ID；计划名称来自文件名 | Product ID | 同一商品按计划名称去重计数；计划名称可再与计划表现关联为campaign_id。 |
+| GMV Max广告成本 | 计划数据/GMV Max 计划商品表现 | 成本 | Product ID | 跨计划按商品求和。 |
+| GMV Max SKU订单数 | 计划数据/GMV Max 计划商品表现 | SKU 订单数 | Product ID | 跨计划按商品求和。 |
+| GMV Max平均下单成本 | 计算字段 | GMV Max广告成本、GMV Max SKU订单数 | Product ID | 广告成本 ÷ SKU订单数；订单数为0时留空。 |
+| GMV Max总收入 | 计划数据/GMV Max 计划商品表现 | 总收入 | Product ID | 跨计划按商品求和。 |
+| 实际ROI | 计算字段 | GMV Max总收入、GMV Max广告成本 | Product ID | 总收入 ÷ 广告成本；成本为0时留空。 |
+| GMV Max可用素材数 | 计划数据/GMV Max 计划商品素材表现 | product_id、Post ID、Creative type、Status | product_id | 优先按原始 product_id 归属商品；缺失时才通过文件名和计划商品表现补齐。Status为已探索或探索中；Video按Post ID去重，Product card按该商品计1条；跨计划按“计划+素材键”计数。 |
+| GMV Max有消耗素材数 | 计划数据/GMV Max 计划商品素材表现 | product_id、Post ID、Creative type、成本 | product_id | 优先按原始 product_id 归属商品；缺失时才通过文件名和计划商品表现补齐。按与可用素材相同的素材键聚合，统计成本>0的素材数。 |
+| 区间新增评价数 | 店铺数据/商品评价明细 | product_id、review_date | product_id | 筛选评价日期落入统计区间后，按product_id计数。 |
+| 区间新增评价平均分 | 店铺数据/商品评价明细 | rating | product_id | 筛选统计区间后按商品计算评分算术平均；无评价留空。 |
+| 区间差评数 | 店铺数据/商品评价明细 | rating | product_id | 筛选统计区间后统计 rating<=2 的记录数。 |
+| 成本覆盖SKU数 | 15_人工录入/成本表；店铺数据/商品与SKU商业状态快照（skus） | SKU ID、生效日期、币种、各必需成本项、平台费率；sku_id | SKU ID | 成本生效截止日固定使用“商业状态快照日期”，不使用库存快照日期。对当前SKU匹配 `生效日期 <= 商业状态快照日期` 的最近一条成本记录；仅当币种、各必需成本项和平台费率均有明确数值（真实无成本项需人工填0）时计为成本覆盖。 |
+| 成本覆盖率 | 计算字段 | 成本覆盖SKU数、SKU总数 | Product ID | 成本覆盖SKU数 ÷ SKU总数；SKU总数为0时留空。 |
+| 估算商品毛利率 | 店铺数据/商品与SKU商业状态快照（skus）；店铺数据/库存快照；15_人工录入/成本表 | 当前售价、售价币种、近30天销量、各单位成本、平台费率、成本币种 | SKU ID | 近30天销量>0的SKU必须具有完整有效成本，且售价币种=成本币种；任一有销量SKU成本项未知或币种不一致时整项留空。全部满足时计算：Σ[(售价-单位基础成本-售价×平台费率)×销量] ÷ Σ(售价×销量)。无有效销量或分母<=0时留空。 |
+| 保本ROI | 计算字段 | 估算商品毛利率 | Product ID | 估算商品毛利率>0时：1 ÷ 估算商品毛利率；否则留空。 |
+| ROI安全差 | 计算字段 | 实际ROI、保本ROI | Product ID | 实际ROI - 保本ROI；任一为空则留空。 |
+| 店铺币种 | 店铺数据/商品与SKU商业状态快照（products）；店铺数据/商品分析表现 | currency；商品分析金额列币种符号 | Product ID | 优先products快照currency；缺失时按同一报表已验证币种元数据/符号读取，不跨报表猜测。 |
+| 广告币种 | 计划数据/GMV Max 计划商品表现 | Currency | Product ID | 同一商品跨计划币种去重后写入；应为单一ISO代码。 |
+| 成本币种 | 15_人工录入/成本表 | 币种 | SKU ID | 匹配到的有效成本记录币种去重；单一币种写入，多币种不换算并报错。 |
+
+## 六、店铺诊断
+
+字段映射表
+
+| 清洗字段 | 原始文件 | 原始字段 | 关联键 | 处理方式 |
+|---|---|---|---|---|
+| 统计开始日期 | 运行参数（非导出表） | start_date | — | 直接写入。 |
+| 统计结束日期 | 运行参数（非导出表） | end_date | — | 直接写入。 |
+| 统计天数 | 运行参数（非导出表） | start_date、end_date | — | 按自然日含首尾计算。 |
+| 店铺ID | 店铺数据/商品与SKU商业状态快照（products） | product_record_json.seller_id | — | 从最新products快照中取唯一seller_id；若无产品行，使用运行上下文绑定的店铺ID。 |
+| 店铺名称 | 运行上下文（非导出表） | shop_root 末级目录名 | — | 直接写入。 |
+| 店铺GMV | 店铺数据/商品分析表现 | 全部.GMV | 商品 ID | 所有商品先转数值后求和。 |
+| 订单数 | 店铺数据/订单明细 | Order ID | — | 清洗区间内按Order ID去重计数，避免多SKU订单重复。 |
+| SKU订单数 | 店铺数据/商品分析表现 | 全部.SKU 订单数 | 商品 ID | 所有商品求和。 |
+| 商品成交件数 | 店铺数据/商品分析表现 | 全部.商品成交件数 | 商品 ID | 所有商品求和。 |
+| 客户数 | 店铺数据/订单明细 | Buyer Username | — | 仅用于聚合，不输出个人信息；标准化后按非空Buyer Username去重计数。无有效用户名时留空，不用订单数替代。 |
+| AOV | 计算字段 | 店铺GMV、SKU订单数 | — | 店铺GMV ÷ SKU订单数；SKU订单数为0时留空。 |
+| 商品曝光次数 | 店铺数据/商品分析表现 | 全部.商品曝光次数 | 商品 ID | 所有商品求和。 |
+| 商品点击量 | 店铺数据/商品分析表现 | 全部.商品点击量 | 商品 ID | 所有商品求和。 |
+| 商品点击率 | 计算字段 | 商品点击量、商品曝光次数 | — | 商品点击量 ÷ 商品曝光次数；商品曝光次数为0或空时留空；曝光次数>0且点击量为0时结果为0。 |
+| 加购次数 | 店铺数据/商品分析表现 | 全部.加购次数 | 商品 ID | 所有商品求和。 |
+| 加购率 | 计算字段 | 加购次数、商品点击量 | — | 加购次数 ÷ 商品点击量；商品点击量为0或空时留空；点击量>0且加购次数为0时结果为0。 |
+| CTOR | 计算字段 | SKU订单数、商品点击量 | — | SKU订单数 ÷ 商品点击量；商品点击量为0或空时留空；点击量>0且SKU订单数为0时结果为0。 |
+| 退款金额 | 店铺数据/商品分析表现 | 全部.退款金额 | 商品 ID | 所有商品求和。 |
+| 退款金额率 | 计算字段 | 退款金额、店铺GMV | — | 退款金额 ÷ 店铺GMV；GMV为0时留空。 |
+| 已退款商品件数 | 店铺数据/商品分析表现 | 全部.已退款的商品件数 | 商品 ID | 所有商品求和。 |
+| 取消/退货商品件数 | 店铺数据/订单明细 | Quantity、Sku Quantity of return、Cancelled Time、Order Status | Order ID + SKU ID | 取消订单按Quantity计；非取消订单按Sku Quantity of return计；按订单-SKU行求和。 |
+| 商家视频GMV | 店铺数据/商品分析表现 | 全部.商家视频 GMV | 商品 ID | 所有商品求和。 |
+| 达人归因GMV | 店铺数据/商品分析表现 | 全部.达人归因 GMV | 商品 ID | 所有商品求和。 |
+| 联盟视频GMV | 店铺数据/商品分析表现 | 全部.联盟视频商品交易总额 | 商品 ID | 所有商品求和。 |
+| 商品卡GMV | 店铺数据/商品分析表现 | 全部.商家商品卡 GMV | 商品 ID | 所有商品求和。 |
+| GMV Max广告总成本 | 广告户数据/GMV Max 计划总览 | 成本 | — | 读取总计行；无总计行时汇总非总计行。 |
+| GMV Max SKU订单数 | 广告户数据/GMV Max 计划总览 | SKU orders (Current shop) | — | 读取总计行；无总计行时汇总。 |
+| GMV Max总收入 | 广告户数据/GMV Max 计划总览 | Gross revenue (Current shop) | — | 读取总计行；无总计行时汇总。 |
+| 实际ROI | 计算字段 | GMV Max总收入、GMV Max广告总成本 | — | 总收入 ÷ 广告总成本；成本为0时留空。 |
+| 计划总数 | 计划数据/GMV Max 计划表现 | campaign_id | — | 按campaign_id去重计数。 |
+| 运行计划数 | 计划数据/GMV Max 计划表现 | campaign_id、campaign_primary_status、campaign_status | — | 按campaign_id去重；只计delivery_ok且campaign_delivery_ok。 |
+| 有消耗计划数 | 计划数据/GMV Max 计划表现 | campaign_id、cost | — | 按campaign_id聚合后统计cost>0。 |
+| 健康快照日期 | 导出文件名（非表内字段） | 店铺健康快照/YYYY-MM-DD.xlsx 文件名日期 | — | 写入本次采用的最新健康快照日期。 |
+| 账号健康分 | 店铺数据/店铺健康快照 | 指标=账号健康分 的当前值 | — | 按“指标”精确匹配行，读取当前值；百分比字段按%规则转小数，分数转数值。 |
+| 违规分 | 店铺数据/店铺健康快照 | 指标=违规分 的当前值 | — | 按“指标”精确匹配行，读取当前值；百分比字段按%规则转小数，分数转数值。 |
+| 商责取消率 | 店铺数据/店铺健康快照 | 指标=商责取消率 的当前值 | — | 按“指标”精确匹配行，读取当前值；百分比字段按%规则转小数，分数转数值。 |
+| 延迟发货率 | 店铺数据/店铺健康快照 | 指标=延迟发货率 的当前值 | — | 按“指标”精确匹配行，读取当前值；百分比字段按%规则转小数，分数转数值。 |
+| 商责差评率 | 店铺数据/店铺健康快照 | 指标=商责差评率 的当前值 | — | 按“指标”精确匹配行，读取当前值；百分比字段按%规则转小数，分数转数值。 |
+| 商家责任退货退款率 | 店铺数据/店铺健康快照 | 指标=商家责任退货退款率 的当前值 | — | 按“指标”精确匹配行，读取当前值；百分比字段按%规则转小数，分数转数值。 |
+| 履约快照日期 | 导出文件名（非表内字段） | 履约表现快照/YYYY-MM-DD.xlsx 文件名日期 | — | 写入本次采用的最新履约快照日期。 |
+| 快速发货率 | 店铺数据/履约表现快照 | 指标=快速发货率 的当前值、单位 | — | 单位为%时将原始98.37转换为0.9837并显示98.37%。 |
+| 待发货至签收平均时长 | 店铺数据/履约表现快照 | 指标=待发货–已签收时间 的当前值、单位 | — | 读取小时数；单位保持小时语义，输出纯数值。 |
+| 在售商品数 | 店铺数据/商品与SKU商业状态快照（products） | lifecycle_status、product_record_json.visible_status.is_visible | product_id | products快照按product_id去重；排除delisted/draft/deleted，且visible=true的商品计数。 |
+| 缺货SKU数 | 店铺数据/库存快照 | SKU ID、库存状态（计算）、可用库存 | — | 按SKU ID去重；状态=缺货或可用库存<=0计数。 |
+| 低库存SKU数 | 店铺数据/库存快照 | SKU ID、库存状态（计算） | — | 按SKU ID去重；仅状态=需关注计数。 |
+| 店铺币种 | 店铺数据/商品与SKU商业状态快照（products）；店铺数据/商品分析表现 | currency；商品分析金额币种 | — | 优先products快照唯一currency；缺失时读商品分析报表自身币种证据。 |
+| 广告币种 | 广告户数据/GMV Max 计划总览；计划数据/GMV Max 计划表现 | 币种；currency | — | 优先计划总览币种；缺失时使用计划表现currency；必须为单一ISO代码。 |
+
+## 七、广告户状态快照
+
+字段映射表
+
+| 清洗字段 | 原始文件 | 原始字段 | 关联键 | 处理方式 |
+|---|---|---|---|---|
+| 采集日期 | 广告户数据/广告账户状态 | captured_date | — | 直接读取。 |
+| 店铺ID | 广告户数据/广告账户状态 | account_snapshot_json.frozen_identity.seller_id | — | 解析JSON；转文本。 |
+| 店铺名称 | 运行上下文（非导出表） | shop_root 末级目录名 | — | 直接写入。 |
+| 广告户ID | 广告户数据/广告账户状态 | advertiser_id | — | 直接读取；转文本。 |
+| 广告户名称 | 广告户数据/广告账户状态 | advertiser_name | advertiser_id | 直接读取。 |
+| 广告账户状态码 | 广告户数据/广告账户状态 | account_snapshot_json.authorization.autho_info_list[].adv_info.status | advertiser_id | 在autho_info_list中选择adv_id=advertiser_id项；保留原始状态码。 |
+| GMV Max授权状态码 | 广告户数据/广告账户状态 | account_snapshot_json.authorization.autho_info_list[].authorization_status | advertiser_id | 选择同一广告户项；保留原始状态码。 |
+| CPS授权状态码 | 广告户数据/广告账户状态 | account_snapshot_json.authorization.autho_info_list[].cps_authorization_status | advertiser_id | 选择同一广告户项；保留原始状态码。 |
+| 支付账户ID | 广告户数据/广告账户状态 | account_snapshot_json.payment.pa_info.account_id / payment.crm_account_id | advertiser_id | 优先pa_info.account_id；缺失时使用crm_account_id；转文本。 |
+| 支付账户状态码 | 广告户数据/广告账户状态 | account_snapshot_json.payment.pa_info.status | advertiser_id | 保留原始状态码。 |
+| 支付方式类型 | 广告户数据/广告账户状态 | account_snapshot_json.billing_options.current_billing_option[0].pay_method_type / payment.billing_options[0].pay_method_type | advertiser_id | 按优先级读取；保留原始枚举。 |
+| 账户币种 | 广告户数据/广告账户状态 | currency / account_snapshot_json.payment.adv_info_vo.currency | advertiser_id | 优先外层currency；缺失时使用adv_info_vo.currency。 |
+| 账户时区 | 广告户数据/广告账户状态 | account_snapshot_json.payment.adv_info_vo.timezone | advertiser_id | 直接读取。 |
+
+## 八、计划小时表现
+
+字段映射表
+
+| 清洗字段 | 原始文件 | 原始字段 | 关联键 | 处理方式 |
+|---|---|---|---|---|
+| 日期 | 计划数据/GMV Max 计划小时表现 | metric_date | campaign_id | 转标准日期。 |
+| 小时 | 计划数据/GMV Max 计划小时表现 | metric_hour | campaign_id + metric_date | 统一为HH:00文本或时间值。 |
+| 时区 | 广告户数据/广告账户状态 | account_snapshot_json.payment.adv_info_vo.timezone | advertiser_id | 使用最新账户快照。 |
+| 店铺ID | 广告户数据/广告账户状态 | account_snapshot_json.frozen_identity.seller_id | — | 解析JSON；转文本。 |
+| 广告户ID | 广告户数据/广告账户状态 | advertiser_id | — | 直接读取。 |
+| 计划ID | 计划数据/GMV Max 计划小时表现 | campaign_id | — | 直接读取；转文本。 |
+| 计划名称 | 计划数据/GMV Max 计划小时表现 | campaign_name | campaign_id | 直接读取。 |
+| 广告成本 | 计划数据/GMV Max 计划小时表现 | cost | campaign_id + metric_date + metric_hour | 金额转数值。 |
+| 广告展示量 | 计划数据/GMV Max 计划小时表现 | impressions | campaign_id + metric_date + metric_hour | 转整数。 |
+| 广告点击量 | 计划数据/GMV Max 计划小时表现 | clicks | campaign_id + metric_date + metric_hour | 转整数。 |
+| 广告CTR | 计算字段 | 广告点击量、广告展示量 | campaign_id + 日期 + 小时 | 点击量 ÷ 展示量。 |
+| 广告CPC | 计算字段 | 广告成本、广告点击量 | campaign_id + 日期 + 小时 | 成本 ÷ 点击量；点击量为0时留空。 |
+| 广告CPM | 计算字段 | 广告成本、广告展示量 | campaign_id + 日期 + 小时 | 成本 ÷ 展示量 × 1000；展示量为0时留空。 |
+| GMV Max SKU订单数 | 计划数据/GMV Max 计划小时表现 | sku_orders | campaign_id + metric_date + metric_hour | 转整数。 |
+| GMV Max平均下单成本 | 计算字段 | 广告成本、GMV Max SKU订单数 | campaign_id + 日期 + 小时 | 成本 ÷ SKU订单数；订单数为0时留空。 |
+| GMV Max总收入 | 计划数据/GMV Max 计划小时表现 | gross_revenue | campaign_id + metric_date + metric_hour | 金额转数值。 |
+| 实际ROI | 计算字段 | GMV Max总收入、广告成本 | campaign_id + 日期 + 小时 | 总收入 ÷ 成本；成本为0时留空。 |
+| 广告币种 | 计划数据/GMV Max 计划小时表现 | currency | campaign_id | 直接读取。 |
+
+## 九、计划配置历史
+
+字段映射表
+
+| 清洗字段 | 原始文件 | 原始字段 | 关联键 | 处理方式 |
+|---|---|---|---|---|
+| 采集日期 | 计划数据/GMV Max 当前配置 | captured_date | campaign_id | 直接读取。 |
+| 店铺ID | 广告户数据/广告账户状态 | account_snapshot_json.frozen_identity.seller_id | — | 解析最新账户快照。 |
+| 广告户ID | 广告户数据/广告账户状态 | advertiser_id | — | 直接读取。 |
+| 计划ID | 计划数据/GMV Max 当前配置 | campaign_id | — | 直接读取；转文本。 |
+| 计划名称 | 计划数据/GMV Max 当前配置 | campaign_name | campaign_id | 直接读取。 |
+| 目标ROI | 计划数据/GMV Max 当前配置 | configuration_json.ad_info.roas_bid | campaign_id | 解析JSON；倍率。 |
+| 日预算 | 计划数据/GMV Max 当前配置 | configuration_json.ad_info.budget | campaign_id | 金额转数值。 |
+| 预算模式 | 计划数据/GMV Max 当前配置 | configuration_json.ad_info.budget_mode | campaign_id | 保留原始枚举。 |
+| 优化模式 | 计划数据/GMV Max 当前配置 | configuration_json.campaign_info.gmv_roi_mode | campaign_id | 保留原始枚举。 |
+| 自动预算调整开关 | 计划数据/GMV Max 当前配置 | configuration_json.ad_info.gmax_budget_adjust_setting.auto_budget_switch | campaign_id | 布尔值统一输出TRUE/FALSE。 |
+| 当前有效预算 | 计划数据/GMV Max 当前配置 | configuration_json.ad_info.gmax_budget_adjust_setting.effective_budget | campaign_id | 金额转数值。 |
+| 促销日设置开关 | 计划数据/GMV Max 当前配置 | configuration_json.ad_info.promotion_days_setting.is_enable | campaign_id | 布尔值统一输出TRUE/FALSE。 |
+| 促销日ROI | 计划数据/GMV Max 当前配置 | configuration_json.ad_info.promotion_days_setting.adjusted_roas_bid | campaign_id | 倍率；未启用但原值存在仍保留。 |
+| 促销日日预算 | 计划数据/GMV Max 当前配置 | configuration_json.ad_info.promotion_days_setting.adjusted_budget | campaign_id | 金额转数值。 |
+| 开始时间 | 计划数据/GMV Max 当前配置 | configuration_json.ad_info.start_time | campaign_id | 转标准日期时间。 |
+| 结束时间 | 计划数据/GMV Max 当前配置 | configuration_json.ad_info.end_time | campaign_id | 转标准日期时间。 |
+| 推广商品数 | 计划数据/GMV Max 当前配置 | configuration_json.ad_info.product_list[].spu_id | campaign_id | 按spu_id去重计数。 |
+| 推广商品ID列表 | 计划数据/GMV Max 当前配置 | configuration_json.ad_info.product_list[].spu_id | campaign_id | 转文本、去重、排序，以分号连接。 |
+| 视频选择模式 | 计划数据/GMV Max 当前配置 | configuration_json.ad_info.product_video_selection_type | campaign_id | 保留原始枚举。 |
+| 新素材探索设置 | 计划数据/GMV Max 当前配置 | configuration_json.ad_info.shop_new_creative_exploration | campaign_id | 保留原始枚举。 |
+| 投放国家 | 计划数据/GMV Max 当前配置 | configuration_json.ad_info.country | campaign_id | 直接读取国家代码。 |
+| 广告币种 | 计划数据/GMV Max 当前配置 | currency | campaign_id | 直接读取。 |
+
+## 十、计划变更记录
+
+字段映射表
+
+| 清洗字段 | 原始文件 | 原始字段 | 关联键 | 处理方式 |
+|---|---|---|---|---|
+| 变更时间 | 计划数据/GMV Max 计划变更记录 | change_record_json.opt_time | campaign_id | 解析JSON；转标准日期时间。 |
+| 店铺ID | 广告户数据/广告账户状态 | account_snapshot_json.frozen_identity.seller_id | — | 解析最新账户快照。 |
+| 广告户ID | 广告户数据/广告账户状态 | advertiser_id | — | 直接读取。 |
+| 计划ID | 计划数据/GMV Max 计划变更记录 | campaign_id | — | 直接读取；转文本。 |
+| 计划名称 | 导出文件名（非表内字段） | 计划名称__开始日期_至_结束日期.xlsx | campaign_id | 从文件名解析计划名称。 |
+| 变更ID | 计划数据/GMV Max 计划变更记录 | change_id / change_record_json.id | campaign_id | 优先外层change_id；缺失时用JSON.id；转文本。 |
+| 对象类型 | 计划数据/GMV Max 计划变更记录 | change_record_json.object_type | campaign_id | 直接读取。 |
+| 对象ID | 计划数据/GMV Max 计划变更记录 | change_record_json.object_id | campaign_id | 转文本。 |
+| 操作人 | 计划数据/GMV Max 计划变更记录 | change_record_json.user | campaign_id | 直接读取脱敏账号。 |
+| 变更摘要 | 计划数据/GMV Max 计划变更记录 | change_record_json.activity_details[].value | change_id | 去空后按原顺序以“；”连接。 |
+| 变更详情 | 计划数据/GMV Max 计划变更记录 | change_record_json.activity_details[].hover | change_id | 去空后按原顺序以“；”连接；无hover时留空。 |
+| 广告币种 | 计划数据/GMV Max 计划变更记录 | currency | campaign_id | 直接读取。 |
+
+## 十一、SKU状态库存明细
+
+字段映射表
+
+| 清洗字段 | 原始文件 | 原始字段 | 关联键 | 处理方式 |
+|---|---|---|---|---|
+| 快照日期 | 导出文件名（非表内字段） | products__/skus__/库存快照文件名日期 | SKU ID | 选择 products、skus、库存三类文件均存在的最新共同快照日期，并写入该日期；不存在共同日期时报告缺少可组合快照，不混用不同日期。 |
+| 店铺ID | 店铺数据/商品与SKU商业状态快照（products） | product_record_json.seller_id | Product ID | 解析JSON；转文本。 |
+| 商品ID | 店铺数据/商品与SKU商业状态快照（skus） | product_id | SKU ID | 直接读取；转文本。 |
+| 商品名称 | 店铺数据/商品与SKU商业状态快照（products）；店铺数据/库存快照 | product_record_json.product_name；商品名称 | Product ID | 优先products商品名称；缺失时使用库存商品名称。 |
+| SKU ID | 店铺数据/商品与SKU商业状态快照（skus） | sku_id | — | 直接读取；转文本。 |
+| 商家SKU | 店铺数据/商品与SKU商业状态快照（skus）；店铺数据/库存快照 | sku_record_json.seller_sku；商家SKU | SKU ID | 优先SKU快照；缺失时用库存快照。 |
+| SKU规格 | 店铺数据/商品与SKU商业状态快照（skus）；店铺数据/库存快照 | sku_record_json.properties[].name/value_name；规格 | SKU ID | 按properties原顺序拼接“name: value_name”，分号分隔；无properties时用库存规格。 |
+| SKU状态 | 店铺数据/商品与SKU商业状态快照（skus） | sku_record_json.sku_status_info.status | SKU ID | 保留原始状态码，不自行翻译未知枚举。 |
+| 当前预售状态 | 店铺数据/商品与SKU商业状态快照（skus） | sku_record_json.pre_order_status | SKU ID | 0→非预售，1→预售；其他值保留原始值。 |
+| 当前售价 | 店铺数据/商品与SKU商业状态快照（skus） | sku_record_json.base_price.promotion_price / sale_price | SKU ID | 优先非空且>0的promotion_price；否则sale_price；金额转数值。 |
+| 列表价 | 店铺数据/商品与SKU商业状态快照（skus） | sku_record_json.base_price.list_price | SKU ID | 金额转数值；无值留空，不用sale_price代替。 |
+| 售价币种 | 店铺数据/商品与SKU商业状态快照（skus） | currency / sku_record_json.base_price.currency | SKU ID | 优先外层currency。 |
+| 总库存 | 店铺数据/库存快照 | 总库存 | SKU ID | 直接读取并转整数。 |
+| 可用库存 | 店铺数据/库存快照 | 可用库存 | SKU ID | 直接读取并转整数。 |
+| 锁定库存 | 店铺数据/库存快照 | 锁定库存 | SKU ID | 直接读取并转整数。 |
+| 库存状态 | 店铺数据/库存快照 | 库存状态（计算） | SKU ID | 直接读取。 |
+| 近30天销量 | 店铺数据/库存快照 | 近30天销量 | SKU ID | 转整数。 |
+| 未来30天销量预测 | 店铺数据/库存快照 | 未来30天销量预测 | SKU ID | 转数值。 |
+| 建议补货数量 | 店铺数据/库存快照 | 建议补货数量 | SKU ID | 转整数。 |
+| 官方可供应天数 | 店铺数据/库存快照 | 官方可供应天数 | SKU ID | 保留数字或“>60”；空值保持空。 |
+| 仓库名称 | 店铺数据/库存快照 | 仓库名称（观察值） | SKU ID | 直接读取。 |
+| 成本生效日期 | 15_人工录入/成本表 | 生效日期 | SKU ID | 选择生效日期<=快照日期的最新一条成本记录。 |
+| 成本币种 | 15_人工录入/成本表 | 币种 | SKU ID + 成本生效日期 | 直接读取。 |
+| 单位采购成本 | 15_人工录入/成本表 | 单位采购成本 | SKU ID + 成本生效日期 | 金额转数值；空值表示未知，不按0处理。真实没有该项成本必须在人工成本表明确填写0。 |
+| 单位头程成本 | 15_人工录入/成本表 | 单位头程成本 | SKU ID + 成本生效日期 | 金额转数值；空值表示未知，不按0处理。真实没有该项成本必须在人工成本表明确填写0。 |
+| 单位关税及清关成本 | 15_人工录入/成本表 | 单位关税及清关成本 | SKU ID + 成本生效日期 | 金额转数值；空值表示未知，不按0处理。真实没有该项成本必须在人工成本表明确填写0。 |
+| 单位包装成本 | 15_人工录入/成本表 | 单位包装成本 | SKU ID + 成本生效日期 | 金额转数值；空值表示未知，不按0处理。真实没有该项成本必须在人工成本表明确填写0。 |
+| 平台费率 | 15_人工录入/成本表 | 平台费率（%） | SKU ID + 成本生效日期 | 按该原始字段固定百分比规则转为小数并显示百分比。 |
+| 单位本地物流成本 | 15_人工录入/成本表 | 单位本地物流成本 | SKU ID + 成本生效日期 | 金额转数值；空值表示未知，不按0处理。真实没有该项成本必须在人工成本表明确填写0。 |
+| 单位仓租分摊 | 15_人工录入/成本表 | 单位仓租分摊 | SKU ID + 成本生效日期 | 金额转数值；空值表示未知，不按0处理。真实没有该项成本必须在人工成本表明确填写0。 |
+| 单位基础成本 | 计算字段 | 单位采购成本+单位头程成本+单位关税及清关成本+单位包装成本+单位本地物流成本+单位仓租分摊 | SKU ID | 仅当六项单位成本均为明确数值时求和；任一项为空即表示未知，单位基础成本留空。 |
+| 按当前售价估算毛利率 | 计算字段 | 当前售价、售价币种、单位基础成本、平台费率、成本币种 | SKU ID | 仅当当前售价>0、单位基础成本与平台费率完整，且售价币种=成本币种时计算：(当前售价-单位基础成本-当前售价×平台费率) ÷ 当前售价；任一条件不满足时留空。 |
+| 按当前售价估算保本ROI | 计算字段 | 按当前售价估算毛利率 | SKU ID | 毛利率>0时：1 ÷ 毛利率；否则留空。 |
+
+## 十二、订单经营明细
+
+字段映射表
+
+| 清洗字段 | 原始文件 | 原始字段 | 关联键 | 处理方式 |
+|---|---|---|---|---|
+| 订单ID | 店铺数据/订单明细 | Order ID | Order ID + SKU ID | 去除制表符和首尾空白，按文本保存。 |
+| 订单状态 | 店铺数据/订单明细 | Order Status | Order ID + SKU ID | 去除首尾空白；原始空值保持空。 |
+| 订单子状态 | 店铺数据/订单明细 | Order Substatus | Order ID + SKU ID | 去除首尾空白；原始空值保持空。 |
+| 取消/退货类型 | 店铺数据/订单明细 | Cancelation/Return Type | Order ID + SKU ID | 去除首尾空白；原始空值保持空。 |
+| 订单预售类型 | 店铺数据/订单明细 | Normal or Pre-order | Order ID + SKU ID | 去除首尾空白；原始空值保持空。 |
+| 商品ID | 店铺数据/商品与SKU商业状态快照（skus） | product_id | SKU ID | 订单明细没有Product ID；按标准化后的SKU ID关联最新skus快照取得。 |
+| SKU ID | 店铺数据/订单明细 | SKU ID | Order ID + SKU ID | 去除制表符和首尾空白，按文本保存。 |
+| 商家SKU | 店铺数据/订单明细 | Seller SKU | Order ID + SKU ID | 去除首尾空白；原始空值保持空。 |
+| 商品名称 | 店铺数据/订单明细 | Product Name | Order ID + SKU ID | 去除首尾空白；原始空值保持空。 |
+| 规格 | 店铺数据/订单明细 | Variation | Order ID + SKU ID | 去除首尾空白；原始空值保持空。 |
+| 数量 | 店铺数据/订单明细 | Quantity | Order ID + SKU ID | 转整数。 |
+| 退货SKU数量 | 店铺数据/订单明细 | Sku Quantity of return | Order ID + SKU ID | 转整数。 |
+| SKU原价 | 店铺数据/订单明细 | SKU Unit Original Price | Order ID + SKU ID | 金额转数值；空值保持空。订单级字段后续聚合时按Order ID去重，SKU级字段按SKU行聚合。 |
+| SKU折前小计 | 店铺数据/订单明细 | SKU Subtotal Before Discount | Order ID + SKU ID | 金额转数值；空值保持空。订单级字段后续聚合时按Order ID去重，SKU级字段按SKU行聚合。 |
+| 平台折扣 | 店铺数据/订单明细 | SKU Platform Discount | Order ID + SKU ID | 金额转数值；空值保持空。订单级字段后续聚合时按Order ID去重，SKU级字段按SKU行聚合。 |
+| 卖家折扣 | 店铺数据/订单明细 | SKU Seller Discount | Order ID + SKU ID | 金额转数值；空值保持空。订单级字段后续聚合时按Order ID去重，SKU级字段按SKU行聚合。 |
+| SKU折后小计 | 店铺数据/订单明细 | SKU Subtotal After Discount | Order ID + SKU ID | 金额转数值；空值保持空。订单级字段后续聚合时按Order ID去重，SKU级字段按SKU行聚合。 |
+| 折后运费 | 店铺数据/订单明细 | Shipping Fee After Discount | Order ID + SKU ID | 金额转数值；空值保持空。订单级字段后续聚合时按Order ID去重，SKU级字段按SKU行聚合。 |
+| 原始运费 | 店铺数据/订单明细 | Original Shipping Fee | Order ID + SKU ID | 金额转数值；空值保持空。订单级字段后续聚合时按Order ID去重，SKU级字段按SKU行聚合。 |
+| 卖家运费折扣 | 店铺数据/订单明细 | Shipping Fee Seller Discount | Order ID + SKU ID | 金额转数值；空值保持空。订单级字段后续聚合时按Order ID去重，SKU级字段按SKU行聚合。 |
+| 平台运费折扣 | 店铺数据/订单明细 | Shipping Fee Platform Discount | Order ID + SKU ID | 金额转数值；空值保持空。订单级字段后续聚合时按Order ID去重，SKU级字段按SKU行聚合。 |
+| 支付平台折扣 | 店铺数据/订单明细 | Payment platform discount | Order ID + SKU ID | 金额转数值；空值保持空。订单级字段后续聚合时按Order ID去重，SKU级字段按SKU行聚合。 |
+| 税费 | 店铺数据/订单明细 | Taxes | Order ID + SKU ID | 金额转数值；空值保持空。订单级字段后续聚合时按Order ID去重，SKU级字段按SKU行聚合。 |
+| 订单金额 | 店铺数据/订单明细 | Order Amount | Order ID + SKU ID | 金额转数值；空值保持空。订单级字段后续聚合时按Order ID去重，SKU级字段按SKU行聚合。 |
+| 订单退款金额 | 店铺数据/订单明细 | Order Refund Amount | Order ID + SKU ID | 金额转数值；空值保持空。订单级字段后续聚合时按Order ID去重，SKU级字段按SKU行聚合。 |
+| 创建时间 | 店铺数据/订单明细 | Created Time | Order ID + SKU ID | 去除制表符和首尾空白，按原始月/日/年格式解析为标准日期时间；空值保持空。 |
+| 支付时间 | 店铺数据/订单明细 | Paid Time | Order ID + SKU ID | 去除制表符和首尾空白，按原始月/日/年格式解析为标准日期时间；空值保持空。 |
+| 备货完成时间 | 店铺数据/订单明细 | RTS Time | Order ID + SKU ID | 去除制表符和首尾空白，按原始月/日/年格式解析为标准日期时间；空值保持空。 |
+| 发货时间 | 店铺数据/订单明细 | Shipped Time | Order ID + SKU ID | 去除制表符和首尾空白，按原始月/日/年格式解析为标准日期时间；空值保持空。 |
+| 签收时间 | 店铺数据/订单明细 | Delivered Time | Order ID + SKU ID | 去除制表符和首尾空白，按原始月/日/年格式解析为标准日期时间；空值保持空。 |
+| 取消时间 | 店铺数据/订单明细 | Cancelled Time | Order ID + SKU ID | 去除制表符和首尾空白，按原始月/日/年格式解析为标准日期时间；空值保持空。 |
+| 支付至发货时长 | 计算字段 | Paid Time、Shipped Time | Order ID + SKU ID | Shipped Time - Paid Time，统一输出小时数；任一时间缺失则留空。 |
+| 发货至签收时长 | 计算字段 | Shipped Time、Delivered Time | Order ID + SKU ID | Delivered Time - Shipped Time，统一输出小时数；任一时间缺失则留空。 |
+| 订单总履约时长 | 计算字段 | Paid Time、Delivered Time | Order ID + SKU ID | Delivered Time - Paid Time，统一输出小时数；任一时间缺失则留空。 |
+| 取消方 | 店铺数据/订单明细 | Cancel By | Order ID + SKU ID | 去除首尾空白；原始空值保持空。 |
+| 取消原因 | 店铺数据/订单明细 | Cancel Reason | Order ID + SKU ID | 去除首尾空白；原始空值保持空。 |
+| 履约类型 | 店铺数据/订单明细 | Fulfillment Type | Order ID + SKU ID | 去除首尾空白；原始空值保持空。 |
+| 仓库名称 | 店铺数据/订单明细 | Warehouse Name | Order ID + SKU ID | 去除首尾空白；原始空值保持空。 |
+| 配送方式 | 店铺数据/订单明细 | Delivery Option | Order ID + SKU ID | 去除首尾空白；原始空值保持空。 |
+| 物流商 | 店铺数据/订单明细 | Shipping Provider Name | Order ID + SKU ID | 去除首尾空白；原始空值保持空。 |
+| 支付方式 | 店铺数据/订单明细 | Payment Method | Order ID + SKU ID | 去除首尾空白；原始空值保持空。 |
+| 商品类目 | 店铺数据/订单明细 | Product Category | Order ID + SKU ID | 去除首尾空白；原始空值保持空。 |
+| 订单渠道 | 店铺数据/订单明细 | Order Channel | Order ID + SKU ID | 去除首尾空白；原始空值保持空。 |
+| 达人账号 | 店铺数据/订单明细 | Creator Handle | Order ID + SKU ID | 去除首尾空白；原始空值保持空。 |
+| 币种 | 店铺数据/订单明细 | currency | Order ID + SKU ID | 去除首尾空白；原始空值保持空。 |
+
+## 十三、退货退款明细
+
+字段映射表
+
+| 清洗字段 | 原始文件 | 原始字段 | 关联键 | 处理方式 |
+|---|---|---|---|---|
+| 采集时间 | 店铺数据/退货退款快照 | 采集时间 | 售后单号 | 转标准日期时间。 |
+| 店铺ID | 运行上下文（非导出表） | shop_id | — | 直接写入当前绑定店铺ID。 |
+| 订单ID | 店铺数据/退货退款快照 | 订单ID | — | 转文本。 |
+| 售后单号 | 店铺数据/退货退款快照 | 售后单号 | 订单ID | 转文本。 |
+| 售后申请时间 | 店铺数据/退货退款快照 | 售后申请时间 | 售后单号 | 时间字段转标准时间；文本字段保留原值，空值保持空。 |
+| 售后类型 | 店铺数据/退货退款快照 | 售后类型 | 售后单号 | 直接读取；空值保持空。 |
+| 售后原因 | 店铺数据/退货退款快照 | 售后原因 | 售后单号 | 直接读取；空值保持空。 |
+| 客户说明 | 店铺数据/退货退款快照 | 客户说明 | 售后单号 | 直接读取；空值保持空。 |
+| 订单实付 | 店铺数据/订单明细（历史文件） | Order Amount | Order ID | 搜索当前店铺 `店铺数据/订单明细/` 下全部已存在历史文件并按标准化Order ID匹配。若同一Order ID在多个文件中的非空Order Amount完全一致，使用该金额；若出现不同非空金额，留空并记录订单金额冲突；完全找不到Order ID时留空。退款快照原“订单实付”样本为状态文本“已付款”，不作为金额使用。 |
+| 退款金额 | 店铺数据/退货退款快照 | 退款金额 | 售后单号 | 去币种符号后转数值。 |
+| 处理状态 | 店铺数据/退货退款快照 | 处理状态 | 售后单号 | 直接读取。 |
+| 退货物流状态 | 店铺数据/退货退款快照 | 退货物流状态 | 售后单号 | 直接读取。 |
+| 退货物流时间 | 店铺数据/退货退款快照 | 退货物流时间 | 售后单号 | 转标准日期时间；空值保持空。 |
+| 平台标签 | 店铺数据/退货退款快照 | 平台标签 | 售后单号 | 直接读取。 |
+| 客户凭证数量 | 店铺数据/退货退款快照 | 客户凭证数量 | 售后单号 | 转整数。 |
+| 币种 | 店铺数据/退货退款快照 | 币种 | 售后单号 | 直接读取ISO币种代码。 |
+
+## 十四、商品评价明细
+
+字段映射表
+
+| 清洗字段 | 原始文件 | 原始字段 | 关联键 | 处理方式 |
+|---|---|---|---|---|
+| 评价日期 | 店铺数据/商品评价明细 | review_date | order_id + product_id + sku_id | 转标准日期时间。 |
+| 店铺ID | 运行上下文（非导出表） | 已绑定店铺ID | — | 由清洗运行上下文写入；不新增原始导出表依赖。 |
+| 商品ID | 店铺数据/商品评价明细 | product_id | — | 转文本。 |
+| SKU ID | 店铺数据/商品评价明细 | sku_id | product_id | 转文本。 |
+| 订单ID | 店铺数据/商品评价明细 | order_id | — | 转文本。 |
+| 评分 | 店铺数据/商品评价明细 | rating | — | 转数值。 |
+| 是否差评 | 计算字段 | rating | — | rating<=2 输出TRUE，否则FALSE；rating为空则留空。 |
+| 评价内容 | 店铺数据/商品评价明细 | review_text | — | 直接读取；空值保持空。 |
+
+## 十五、营销活动明细
+
+字段映射表
+
+| 清洗字段 | 原始文件 | 原始字段 | 关联键 | 处理方式 |
+|---|---|---|---|---|
+| 统计开始日期 | 运行参数（非导出表） | start_date | — | 直接写入。 |
+| 统计结束日期 | 运行参数（非导出表） | end_date | — | 直接写入。 |
+| 店铺ID | 运行上下文（非导出表） | shop_id | — | 直接写入当前绑定店铺ID。 |
+| 营销活动ID | 店铺数据/营销活动表现 | 商品id（源表实际对应promotion_id） | — | 将源表第一列标准化为营销活动ID，去首尾空白并按文本保存。 |
+| 活动名称 | 店铺数据/营销活动表现 | 活动名称 | 营销活动ID | 直接读取。 |
+| 活动状态 | 店铺数据/营销活动表现 | 状态 | 营销活动ID | 直接读取。 |
+| 活动类型 | 店铺数据/营销活动表现 | 类型 | 营销活动ID | 直接读取；空值保持空。 |
+| 活动开始时间 | 店铺数据/营销活动表现 | 活动时间 | 营销活动ID | 按“开始时间 - 结束时间”拆分左侧并转标准日期时间。 |
+| 活动结束时间 | 店铺数据/营销活动表现 | 活动时间 | 营销活动ID | 按“开始时间 - 结束时间”拆分右侧并转标准日期时间。 |
+| 营销活动GMV | 店铺数据/营销活动表现 | GMV (₱) | 营销活动ID | 去币种符号与千分位后转数值。 |
+| 成交订单数 | 店铺数据/营销活动表现 | 成交订单数 | 营销活动ID | 转整数。 |
+| 商品成交件数 | 店铺数据/营销活动表现 | 商品成交件数 | 营销活动ID | 转整数。 |
+| 日均客户数 | 店铺数据/营销活动表现 | 日均客户数 | 营销活动ID | 转数值。 |
+| 笔单价 | 店铺数据/营销活动表现 | 笔单价 (₱) | 营销活动ID | 金额转数值。 |
+| 折扣金额 | 店铺数据/营销活动表现 | 折扣金额 (₱) | 营销活动ID | 金额转数值。 |
+| 平均折扣率 | 店铺数据/营销活动表现 | 平均折扣率 | 营销活动ID | 按百分比规则转小数并显示百分比。 |
+| 营销活动ROI | 计算字段 | 营销活动GMV、折扣金额 | 营销活动ID | 折扣金额>0时：营销活动GMV ÷ 折扣金额；折扣金额为0时留空。原始ROI仅用于核对，不跨行平均。 |
+| 每位客户平均GMV | 店铺数据/营销活动表现 | 每位客户的平均 GMV (₱) | 营销活动ID | 金额转数值。 |
+| 店铺币种 | 店铺数据/营销活动表现 | 工作簿自定义属性 Currency | — | 读取营销活动表现工作簿自身 Currency 属性；当前实际导出值为 PHP。 |
+
+## 十六、店铺健康明细
+
+字段映射表
+
+| 清洗字段 | 原始文件 | 原始字段 | 关联键 | 处理方式 |
+|---|---|---|---|---|
+| 采集时间 | 店铺数据/店铺健康快照 | 采集时间 | 采集时间 + 类别 + 指标 | 转标准日期时间。 |
+| 店铺ID | 运行上下文（非导出表） | 已绑定店铺ID | — | 由清洗运行上下文写入，不新增原始表依赖。 |
+| 店铺名称 | 运行上下文（非导出表） | shop_root 末级目录名 | — | 直接写入。 |
+| 类别 | 店铺数据/店铺健康快照 | 类别 | 采集时间 + 类别 + 指标 | 直接读取。 |
+| 指标 | 店铺数据/店铺健康快照 | 指标 | 采集时间 + 类别 + 指标 | 直接读取。 |
+| 当前值 | 店铺数据/店铺健康快照 | 当前值 | 采集时间 + 类别 + 指标 | 依据值中的%符号或指标固定规则转为数值/百分比；无法数值化的文本保留。 |
+| 目标条件 | 店铺数据/店铺健康快照 | 目标条件 | 采集时间 + 类别 + 指标 | 直接读取。 |
+| 评估开始 | 店铺数据/店铺健康快照 | 评估开始 | 采集时间 + 类别 + 指标 | 转标准日期；空值保持空。 |
+| 评估结束 | 店铺数据/店铺健康快照 | 评估结束 | 采集时间 + 类别 + 指标 | 转标准日期；空值保持空。 |
+| 违规次数 | 店铺数据/店铺健康快照 | 违规次数 | 采集时间 + 类别 + 指标 | 转整数；空值保持空。 |
+| 说明 | 店铺数据/店铺健康快照 | 说明 | 采集时间 + 类别 + 指标 | 直接读取。 |
+
+## 十七、履约表现明细
+
+字段映射表
+
+| 清洗字段 | 原始文件 | 原始字段 | 关联键 | 处理方式 |
+|---|---|---|---|---|
+| 采集时间 | 店铺数据/履约表现快照 | 采集时间 | 采集时间 + 类别 + 指标 | 转标准日期时间。 |
+| 店铺ID | 运行上下文（非导出表） | 已绑定店铺ID | — | 由清洗运行上下文写入，不新增原始表依赖。 |
+| 店铺名称 | 运行上下文（非导出表） | shop_root 末级目录名 | — | 直接写入。 |
+| 类别 | 店铺数据/履约表现快照 | 类别 | 采集时间 + 类别 + 指标 | 直接读取；NaN文本统一为空值。 |
+| 指标 | 店铺数据/履约表现快照 | 指标 | 采集时间 + 类别 + 指标 | 直接读取；NaN文本统一为空值。 |
+| 当前值 | 店铺数据/履约表现快照 | 当前值 | 采集时间 + 类别 + 指标 | 将NaN文本和空串统一为空值；单位=%时把原始98.37转换为0.9837，其他数值直接标准化。 |
+| 单位 | 店铺数据/履约表现快照 | 单位 | 采集时间 + 类别 + 指标 | 直接读取；NaN文本统一为空值。 |
+| 较上期变化 | 店铺数据/履约表现快照 | 较上期变化 | 采集时间 + 类别 + 指标 | 将NaN文本和空串统一为空值；单位=%时把原始98.37转换为0.9837，其他数值直接标准化。 |
+| 上期值 | 店铺数据/履约表现快照 | 上期值 | 采集时间 + 类别 + 指标 | 将NaN文本和空串统一为空值；单位=%时把原始98.37转换为0.9837，其他数值直接标准化。 |
+| 行业均值 | 店铺数据/履约表现快照 | 行业均值 | 采集时间 + 类别 + 指标 | 将NaN文本和空串统一为空值；单位=%时把原始98.37转换为0.9837，其他数值直接标准化。 |
+| 行业分类 | 店铺数据/履约表现快照 | 行业分类 | 采集时间 + 类别 + 指标 | 直接读取；NaN文本统一为空值。 |
+| 评估开始 | 店铺数据/履约表现快照 | 评估开始 | 采集时间 + 类别 + 指标 | 转标准日期；空值保持空。 |
+| 评估结束 | 店铺数据/履约表现快照 | 评估结束 | 采集时间 + 类别 + 指标 | 转标准日期；空值保持空。 |
+| 指标日期 | 店铺数据/履约表现快照 | 指标日期 | 采集时间 + 类别 + 指标 | 转标准日期；空值保持空。 |
+| 分子 | 店铺数据/履约表现快照 | 分子 | 采集时间 + 类别 + 指标 | 将NaN文本和空串统一为空值；作为基础计数直接转数值，不因指标单位为%而除以100。 |
+| 分母 | 店铺数据/履约表现快照 | 分母 | 采集时间 + 类别 + 指标 | 将NaN文本和空串统一为空值；作为基础计数直接转数值，不因指标单位为%而除以100。 |
+| 官方状态 | 店铺数据/履约表现快照 | 官方状态 | 采集时间 + 类别 + 指标 | 直接读取；NaN文本统一为空值。 |
+| 统计口径 | 店铺数据/履约表现快照 | 统计口径 | 采集时间 + 类别 + 指标 | 直接读取；NaN文本统一为空值。 |

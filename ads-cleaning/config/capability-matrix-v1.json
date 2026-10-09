@@ -1,0 +1,172 @@
+{
+  "schema_version": "cleaning_capability_matrix_v1",
+  "observed_export_report_set_version": "2026-08-13.1",
+  "updated_at": "2026-08-13",
+  "reports": {
+    "product_analytics_performance": {
+      "status": "both_verified",
+      "evidence": "cross-border authoritative Manifest a59814cf-f5af-493b-8870-fbbe48fdeaf1 and cleaning batch 2a9d0dc3-5aba-5ac6-abfe-e624f3736fff passed 10 rows; local authoritative Manifest 7d32a4ca-631c-487c-9c28-d1ea2dde5505 and cleaning batch 3a6408fa-8390-5020-a237-756553036eca passed 22 rows; both matched the same 176-column official header contract, PHP scope, Seller identity and Asia/Manila business timezone"
+    },
+    "manage_orders_csv": {
+      "status": "both_verified",
+      "evidence": "cross-border authoritative Manifest 770a9d1b-26c0-434e-868c-d431ae5f7128 and cleaning batch dba19a67-b13e-54f8-9c7d-7af5a81e777b passed 10 operations plus 10 fulfillment-detail rows; local authoritative Manifest 72d8bc82-9d1a-4065-8c73-2ccedfc35ed5 and cleaning batch a7d993ac-92c1-58c9-90f1-48c8d4208921 passed 454 plus 454 rows; local official 65-column variant adds eight tax-invoice fields and permits an absent Package ID without guessing; both use PHP, Seller identity and Asia/Manila business time"
+    },
+    "affiliate_center_performance": {
+      "status": "both_verified",
+      "evidence": "cross-border authoritative Manifest e1792a75-a17d-45e7-bfa4-036325441abf and cleaning batch 743e398a-97a6-54b4-8d0b-f9b009521bf6 passed 6 creator rows plus one QA definition row; local authoritative Manifest 2119b913-fa51-493e-91eb-f80981ce54f0 and cleaning batch 616a20f9-4c0c-5b4e-adbb-38d59ccf3fc1 passed 260 creator rows plus one QA definition row; both matched the same current 22-column official Schema, exact requested interval, PHP scope, authoritative Seller identity and unique creator-name keys; immutable reruns returned reused"
+    },
+    "shop_promotion_performance": {
+      "status": "both_verified",
+      "evidence": "cross-border authoritative Manifest e4151956-5117-4674-b206-c2096e141e40 and cleaning batch 86853a77-8f5b-5c1c-89c5-f2fb90b5b39e passed 3 rows; local authoritative Manifest f3810f93-cdd1-47e5-b991-34e13ae0ed21 and cleaning batch 03033e62-97d7-51d5-8933-c8578f817507 passed 15 rows; both matched the same 14-column official Schema, exact requested interval banner, PHP header currency, shop ownership, row conservation and immutable rerun reuse"
+    },
+    "shop_health_snapshot": {
+      "status": "both_verified",
+      "evidence": "cross-border authoritative Manifest ee899923-9f97-458e-bc1e-fd91391017b3 and cleaning batch 12b640cf-921e-584e-9683-4df41fdb4f29 passed 10 metrics; local authoritative Manifest c4e432f7-f032-48c6-8b97-567d731cdca9 and cleaning batch e1445ff8-f551-57cf-b89a-14a507daae57 passed 13 metrics; both matched the same 9-column generated-snapshot Schema, UTC captured_at, Seller identity, unique category-metric keys, nullable value contract and immutable rerun reuse"
+    },
+    "returns_refunds_snapshot": {
+      "status": "both_verified",
+      "evidence": "local authoritative Manifest faa60e6d-8bab-4bbb-8420-1c4356a4e099 and real Hermes cleaning passed 184 rows; cross-border authoritative Manifest b821dab4-3c14-432b-b338-d485ef958466 and real Hermes cleaning passed 58 rows with seller_id, PHP scope and real reason values"
+    },
+    "fulfillment_performance_snapshot": {
+      "status": "both_verified",
+      "evidence": "cross-border authoritative Manifest 82ec29ff-3a4d-4097-bcfc-5c53db04ee57 and cleaning batch fc922e02-58b5-522b-9bee-983588c20bea passed 10 rows; local authoritative Manifest 3694055d-de5a-421c-ad7b-6b7f8984c9a5 and cleaning batch 7b0b720d-a1c6-56ed-97be-ed47781e2348 passed 10 rows; both matched the same 16-column generated-snapshot contract, exact ten official metric identities, authoritative Seller identity, UTC captured_at and unique record keys; immutable reruns returned reused"
+    },
+    "product_ratings_review_list": {
+      "status": "both_verified",
+      "evidence": "local authoritative Manifest 7382130c-0b3b-4315-8762-1e54da3b3ed6 and cleaning batch 843603d0-a8e3-5228-8087-829c04c95f8d passed 166 rows; cross-border authoritative Manifest abbc3054-7614-4be2-98e4-45c93ab911d7 and cleaning batch 0697fdcf-c721-50a8-8fa7-ce502102869b passed 1 row; extended local Manifest 9b869940-c645-4c7f-8fdb-36e15d0a7a19 and cleaning batch e2299f63-70e6-562f-9fc6-30a3047ba56b passed 4484 rows across two official CSV files while preserving five exact duplicate rows because the export exposes no review ID"
+    },
+    "gmvmax_campaign_overview": {
+      "status": "both_verified",
+      "evidence": "authoritative cross_border and local Manifests"
+    },
+    "gmvmax_campaign_hourly_performance": {
+      "status": "both_verified",
+      "evidence": "2026-08-13 cross-border 美妆001 and local TK蚊帐1店 each cleaned two official campaign snapshots into 48 plan-hour facts; campaign/date/hour identity, 00-23 ordering, source hash preservation, record-key uniqueness and official summary reconciliation all passed.",
+      "grain": "one advertiser x campaign x metric hour x currency",
+      "limitation": "This dataset is explicit-only, is capped at seven natural days with concurrency one, and never falls back to advertiser-hourly data."
+    },
+    "gmvmax_campaign_product_performance": {
+      "status": "both_verified",
+      "evidence": "authoritative cross_border and local Manifests with campaign identity"
+    },
+    "shop_creative_hub_video": {
+      "status": "both_verified",
+      "evidence": "authoritative cross_border and local Manifests"
+    },
+    "gmvmax_campaign_product_creative_performance": {
+      "status": "both_verified",
+      "evidence": "local authoritative Manifest 245601eb-c75b-47af-bbcd-bfea471287f5 and cleaning batch 87ddb197-4369-5faf-a11a-41b3b7270c04 passed 1556 rows across 17 files, 2 campaigns and 17 products; cross-border Manifest 3c4931b6-7f6a-4363-95bc-d9065bf3b59d and cleaning batch 5209eba1-a869-57fb-b47f-b56fcd9cef94 passed 41 rows across 2 files, 2 campaigns and 2 products. Both share the same 23-column official Schema, output header, USD scope and product-card null Post ID contract; both immutable reruns returned reused"
+    },
+    "inventory_snapshot": {
+      "status": "both_verified",
+      "evidence": "Stage 6-6-8 revised 16-column contract passed full export and deterministic cleaning with 46 cross-border and 553 local SKU rows. It separates official raw status from calculated status and official days of supply from the trailing-30-day deterministic calculation.",
+      "grain": "one shop x SKU x UTC capture instant; official quantities and demand are SKU-level aggregates across observed warehouses",
+      "days_of_supply_calculated": "available_stock * 30 / sales_30d at SKU snapshot grain; null when sales_30d is zero; six decimal places"
+    },
+    "gmvmax_campaign_performance_interval": {
+      "status": "both_verified",
+      "evidence": "cross-border 美妆001 and local TK蚊帐1店 authoritative generated snapshots completed deterministic cleaning in stage 6-5-4"
+    },
+    "gmvmax_campaign_daily_performance": {
+      "status": "both_verified",
+      "evidence": "Stage 6-6-5A live cross-border beauty001 and local TK net main advertiser probes verified true campaign x date rows, complete pagination, and official show_cnt/click_cnt/ctr fields; CTR matched clicks*100/impressions within 0.01 percentage point.",
+      "supported_fields": [
+        "impressions",
+        "clicks",
+        "ctr_official",
+        "sku_orders",
+        "cost",
+        "gross_revenue",
+        "cost_per_order_official",
+        "roi_official"
+      ],
+      "verified_unavailable_fields": [
+        "cvr_official"
+      ],
+      "limitation": "The frozen campaign daily endpoint rejects tested direct CVR fields. Creative-level CVR is a different grain and is not spliced into campaign daily facts."
+    },
+    "gmvmax_campaign_current_configuration_snapshot": {
+      "status": "both_verified",
+      "evidence": "cross-border 美妆001 and local TK蚊帐1店 authoritative generated snapshots completed deterministic cleaning in stage 6-5-4"
+    },
+    "gmvmax_campaign_change_log": {
+      "status": "both_verified",
+      "evidence": "cross-border 美妆001 and local TK蚊帐1店 authoritative generated snapshots completed deterministic cleaning in stage 6-5-4, including the verified empty cross-border result"
+    },
+    "gmvmax_campaign_recommendation_snapshot": {
+      "status": "both_verified",
+      "evidence": "cross-border 美妆001 and local TK蚊帐1店 authoritative generated snapshots completed deterministic cleaning in stage 6-5-4"
+    },
+    "gmvmax_campaign_upgrade_session_snapshot": {
+      "status": "both_verified",
+      "evidence": "cross-border 美妆001 and local TK蚊帐1店 authoritative generated snapshots completed deterministic cleaning in stage 6-5-4"
+    },
+    "shop_video_performance": {
+      "status": "both_verified",
+      "evidence": "cross-border 美妆001 returned an authoritative empty result and local TK蚊帐1店 produced 58 complete video rows; both passed deterministic stage 6-5-4D cleaning gates"
+    },
+    "shop_gmv_source_breakdown_daily": {
+      "status": "both_verified",
+      "evidence": "cross-border 美妆001 and local TK蚊帐1店 each produced 57 source-breakdown rows; interval semantics and the two non-additive source trees passed deterministic stage 6-5-4D cleaning gates"
+    },
+    "shop_product_growth_opportunity_snapshot": {
+      "status": "both_verified",
+      "evidence": "cross-border 美妆001 produced 10 of 10 products and local TK蚊帐1店 produced 30 of 30 products; pagination completeness and unique product identity passed deterministic stage 6-5-4D cleaning gates"
+    },
+    "gmvmax_campaign_product_daily_performance": {
+      "status": "both_verified",
+      "evidence": "Stage 6-6-5B live cross-border beauty001 and local TK net main advertiser probes verified campaign x product x natural-day rows, complete product pagination, stable IDs, and daily-to-interval additive reconciliation.",
+      "supported_fields": [
+        "campaign_id",
+        "product_id",
+        "metric_date",
+        "sku_orders",
+        "gross_revenue",
+        "cost",
+        "cost_per_order_official",
+        "roi_official"
+      ],
+      "limitation": "The source represents products returned by the frozen campaign-day performance query; it is not a current campaign-product configuration relation."
+    },
+    "gmvmax_campaign_product_creative_daily_performance": {
+      "status": "both_verified",
+      "evidence": "Stage 6-6-5C production routes exported cross-border ??001 as 12 work units/342 rows and local TK??1? as 102 work units/26,562 rows over 2026-08-01 through 2026-08-06. Complete official XLSX row counts equaled the unfiltered daily API totals; product-card Post ID remained N/A at source and was normalized to null without inventing a video ID.",
+      "relationship_semantics": "returned_by_date_parameterized_source_query",
+      "relationship_class": "observed_on_metric_date",
+      "limitation": "Observed daily performance relation only; not a current campaign creative configuration claim."
+    },
+    "shop_product_daily_performance": {
+      "status": "both_verified",
+      "evidence": "Stage 6-6-5D production replay for 2026-08-01 through 2026-08-06: cross-border 美妆001 exported 6/6 official daily files, 10 rows per day and 60 cleaned rows; local TK蚊帐1店 exported 6/6 official daily files, daily counts 21/22/21/21/21/21 and 127 cleaned rows. Every day passed exact date-banner, 176-column contract, unique product identity, API-to-XLSX count conservation, file-to-shop-date work-unit binding, and all four cleaning runtime gates.",
+      "channel_semantics": "Overall and merchant/affiliate/channel sections preserve their official independent scope; overlapping sections are not summed as duplicate-free components.",
+      "limitation": "Daily product facts are shop x product x natural day. They are separate from SKU x warehouse x capture-time inventory snapshots and do not carry advertiser identity."
+    },
+    "shop_product_commercial_status_snapshot": {
+      "status": "both_verified",
+      "evidence": "Stage 6-6-8 full export integration and deterministic cleaning passed for cross-border beauty001 (10 products, 46 SKUs) and local TK net shop 1 (42 products, 678 SKUs); all lifecycle tabs, product totals, SKU expansion, product/SKU identity, price currency, and separate grains passed fail-closed gates.",
+      "cleaned_datasets": [
+        "shop_product_commercial_status_snapshot",
+        "shop_sku_commercial_status_snapshot"
+      ],
+      "verified_unavailable_fields": [
+        "product-level promotion start/end timestamps",
+        "seller discount configuration",
+        "platform discount configuration",
+        "coupon status"
+      ],
+      "limitation": "Snapshot only. Raw status enums are preserved; readable listing status is the observed UI lifecycle tab. Inventory quantities are not copied into commercial-status datasets."
+    },
+    "advertiser_account_status_snapshot": {
+      "status": "both_verified",
+      "evidence": "Stage 6-6-9 full export integration and deterministic cleaning passed for cross-border 美妆001 and local TK蚊帐1店 with one current-primary advertiser row per authoritative Manifest v2. Account, ownership, payment, billing and GMV Max authorization sources passed identity, capture-time and currency gates.",
+      "grain": "one shop x advertiser x UTC capture instant",
+      "capability_statuses": {
+        "available_balance": "not_available_current_seller_binding",
+        "spend_limit": "not_available_current_seller_binding",
+        "account_delivery_status": "not_observed_in_frozen_sources",
+        "account_restriction_reason": "not_observed_in_frozen_sources"
+      },
+      "limitation": "Snapshot only. Raw enums are preserved. Account status is not campaign delivery status, and unavailable monetary or blocker fields are not fabricated."
+    }
+  }
+}

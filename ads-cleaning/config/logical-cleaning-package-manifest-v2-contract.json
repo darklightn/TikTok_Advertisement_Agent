@@ -1,0 +1,27 @@
+{
+  "contract_id": "logical_cleaning_package_manifest_contract",
+  "contract_version": "2.0.0",
+  "schema_version": "logical_cleaning_package_manifest_v2",
+  "identity": {
+    "cleaning_package_id": "same_as_containing_cleaning_batch_id",
+    "logical_cleaning_job_id": "forbidden"
+  },
+  "required_fields": [
+    "schema_version", "cleaning_package_id", "source_logical_export_job_id",
+    "source_logical_job_manifest", "source_logical_job_status", "cleaning_package_status",
+    "consumed_export_batch_ids", "consumed_authoritative_work_unit_attempt_ids",
+    "unusable_authoritative_work_unit_attempt_ids", "excluded_non_authoritative_attempt_ids",
+    "incomplete_required_work_units"
+  ],
+  "source_logical_job_manifest": {
+    "required_fields": ["relative_path", "sha256", "manifest_version"],
+    "absolute_path_forbidden": true
+  },
+  "selection": {
+    "only_authoritative_work_unit_attempts_are_consumed": true,
+    "non_authoritative_attempts_are_recorded_as_excluded": true,
+    "duplicate_consumption_forbidden": true
+  },
+  "storage": "embedded_in_cleaning_batch_manifest_v3",
+  "immutability": {"containing_cleaning_batch_is_immutable": true, "source_manifest_hash_is_pinned": true}
+}

@@ -1,0 +1,36 @@
+{
+  "contract_id": "cleaning_storage_contract",
+  "contract_version": "2.0.0",
+  "root_role": "cleaning_data_root",
+  "runtime_snapshot_generation": "deployment_only",
+  "source_repository_is_authoritative": true,
+  "paths": {
+    "staging_root": "_staging/<cleaning_batch_id>",
+    "batch_root": "batches/<cleaning_batch_id>",
+    "dataset_output": "batches/<cleaning_batch_id>/tables/<formal_dataset_name>.csv",
+    "manifest_path": "batches/<cleaning_batch_id>/cleaning_manifest.json",
+    "field_dictionary_path": "batches/<cleaning_batch_id>/field_dictionary.json",
+    "quality_report_path": "batches/<cleaning_batch_id>/quality_report.json"
+  },
+  "relative_path_rules": {
+    "separator": "/",
+    "absolute_paths_forbidden": true,
+    "parent_segments_forbidden": true,
+    "empty_or_dot_segments_forbidden": true,
+    "backslash_forbidden": true,
+    "drive_prefix_forbidden": true
+  },
+  "publication": {
+    "write_only_inside_staging": true,
+    "validate_before_publish": true,
+    "publish_operation": "atomic_directory_rename_same_volume",
+    "final_batch_is_immutable": true,
+    "existing_final_batch_is_never_replaced": true,
+    "staging_is_non_authoritative": true
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "digest_format": "64_lowercase_hex",
+    "verify_before_and_after_publish": true
+  }
+}

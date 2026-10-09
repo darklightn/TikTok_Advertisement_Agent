@@ -1,0 +1,115 @@
+{
+  "contract_id": "cleaning_logical_job_consumption_contract",
+  "contract_version": "1.0.0",
+  "accepted_export_contracts": {
+    "export_batch_manifest_schema": "export_batch_manifest_v3",
+    "logical_export_job_contract": "1.0.0",
+    "export_work_unit_contract": "2.0.0",
+    "capability_and_execution_status_contract": "2.0.0",
+    "campaign_universe_contract": "2.0.0",
+    "source_envelope_contract": "2.0.0"
+  },
+  "input_modes": {
+    "export_batch_id": {
+      "meaning": "clean exactly one immutable child batch",
+      "accepted_batch_status": ["success", "partial"],
+      "partial_source_result": {
+        "cleaning_package_status": "partial",
+        "is_complete_logical_result": false,
+        "must_list_incomplete_required_work_units": true
+      },
+      "failed_blocked_or_cancelled_batch": "do_not_clean_as_data_package"
+    },
+    "logical_export_job_id": {
+      "meaning": "deterministically clean authoritative work-unit attempts across immutable child batches",
+      "read": "latest authoritative versioned logical job manifest",
+      "latest_pointer_role": "non_authoritative_convenience_only",
+      "accepted_logical_job_status": ["success", "partial", "failed", "blocked", "cancelled"],
+      "data_output_allowed_for": ["success", "partial"],
+      "failed_blocked_or_cancelled_without_usable_units": "no_data_tables_and_explicit_package_status"
+    }
+  },
+  "qualification": {
+    "logical_manifest_content_hash_computed_and_retained": true,
+    "child_batch_content_hash_computed_and_retained": true,
+    "source_manifest_hash_verified_from_immutable_batch_path": true,
+    "source_file_hash_verification_required": true,
+    "compatibility_identity_exact_match_required": true,
+    "unknown_contract_version": "blocked",
+    "logical_manifest_version_chain_must_be_contiguous": true,
+    "supersedes_manifest_version_must_match": true,
+    "child_batch_must_belong_to_logical_job": true,
+    "work_unit_attempt_must_belong_to_child_batch": true
+  },
+  "authoritative_attempt_selection": {
+    "source": "logical_job_manifest.authoritative_work_units[work_unit_id].authoritative_attempt_id",
+    "eligible_execution_status_for_rows": ["success"],
+    "eligible_execution_status_for_coverage_only": ["no_data", "skipped"],
+    "error_blocked_cancelled_rows_forbidden": true,
+    "selection_by_attempt_number_mtime_filename_directory_order_or_last_success_forbidden": true,
+    "one_authoritative_attempt_per_work_unit": true,
+    "recovered_work_unit_consumed_once": true
+  },
+  "merge": {
+    "partition_first_by": ["dataset_schema_id", "dataset_contract_version"],
+    "record_identity": "record_key",
+    "content_identity": "record_content_hash",
+    "same_record_key_same_content_hash": "deduplicate_one_logical_record_and_preserve_all_source_lineage",
+    "same_record_key_different_content_hash": {
+      "if_capture_or_source_version_is_legitimately_part_of_record_key": "preserve_as_distinct_versioned_records",
+      "otherwise": "cross_unit_record_conflict"
+    },
+    "conflict_action": "fail_cleaning_invocation_without_emitting_a_data_package",
+    "conflict_resolution_by_mtime_batch_order_or_latest_file_forbidden": true,
+    "no_data_attempt": "contributes_coverage_but_no_rows",
+    "skipped_not_applicable_attempt": "excluded_from_required_coverage_denominator"
+  },
+  "capture_versions": {
+    "retain_fields": [
+      "metric_date", "metric_hour", "requested_start_date", "requested_end_date",
+      "captured_at_utc", "logical_export_job_id", "export_batch_id", "work_unit_id",
+      "authoritative_attempt_id", "record_content_hash"
+    ],
+    "same_metric_time_different_capture": "preserve_when_record_key_contract_includes_capture_or_version_identity",
+    "old_cleaning_package_overwrite_forbidden": true,
+    "latest_capture_selection": "downstream_analysis_or_import_layer_only"
+  },
+  "logical_cleaning_package_manifest": {
+    "schema_version": "logical_cleaning_package_manifest_v2",
+    "cleaning_package_id": "uuid_v5_of_logical_export_job_id_logical_manifest_hash_cleaning_version_sorted_report_ids",
+    "cleaning_package_status": ["success", "partial", "failed", "blocked"],
+    "required_fields": [
+      "schema_version", "cleaning_package_id", "cleaning_package_status",
+      "source_logical_export_job_id", "source_logical_job_manifest_version",
+      "source_logical_job_manifest_sha256", "source_logical_job_status",
+      "is_complete_logical_result", "consumed_export_batch_ids",
+      "consumed_authoritative_work_unit_attempt_ids", "excluded_non_authoritative_attempt_ids",
+      "unusable_authoritative_work_unit_attempt_ids",
+      "incomplete_required_work_units", "coverage_summary", "dataset_partitions",
+      "conflicts", "cleaning_version", "created_at_utc"
+    ],
+    "status_derivation": [
+      { "when": "source_logical_job_status=success and all selected authoritative units and datasets validate with no conflicts", "status": "success", "is_complete_logical_result": true },
+      { "when": "usable authoritative data exists but source is partial or selected dataset has incomplete required coverage or isolated conflicts", "status": "partial", "is_complete_logical_result": false },
+      { "when": "no usable data and a deterministic cleaning or record conflict error exists", "status": "failed", "is_complete_logical_result": false },
+      { "when": "no usable data because source contract/version/permission is blocked", "status": "blocked", "is_complete_logical_result": false }
+    ]
+  },
+  "report_selection": {
+    "selected_report_ids_must_exist_in_logical_request": true,
+    "independent_unindexed_batches_cannot_be_assembled_into_one_complete_result": true,
+    "physical_files_do_not_define_logical_dataset_membership": true,
+    "logical_manifest_and_dataset_contract_define_membership": true
+  },
+  "required_validation_scenarios": [
+    "five_child_batches_first_four_success_last_error_yields_partial",
+    "resume_creates_new_child_batch_and_old_manifests_remain_byte_identical",
+    "same_work_unit_multiple_attempts_consumes_only_explicit_authoritative_attempt",
+    "recovered_work_unit_is_not_duplicated",
+    "skipped_not_applicable_unit_is_not_in_required_count",
+    "same_record_key_same_hash_deduplicates_with_lineage",
+    "same_record_key_different_hash_without_version_identity_raises_cross_unit_record_conflict",
+    "partial_single_batch_cannot_claim_complete_logical_result",
+    "unknown_export_contract_version_blocks_consumption"
+  ]
+}

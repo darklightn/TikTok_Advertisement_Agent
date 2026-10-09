@@ -1,0 +1,29 @@
+{
+  "contract_id": "pipeline_runtime_config_contract",
+  "contract_version": "2.0.0",
+  "schema_version": "tiktok_shop_data_pipeline_runtime_v2",
+  "default_config_path": "%LOCALAPPDATA%/tiktok-shop-data-pipeline/config.json",
+  "environment_override": "TIKTOK_SHOP_DATA_PIPELINE_CONFIG",
+  "required_fields": [
+    "schema_version",
+    "data_department_root"
+  ],
+  "derived_paths": {
+    "export_data_root": "<data_department_root>/99_全局生成记录_不用看/导出运行",
+    "cleaning_data_root": "<data_department_root>/99_全局生成记录_不用看/清洗运行",
+    "business_view_root": "<data_department_root>"
+  },
+  "path_rules": {
+    "absolute_required": true,
+    "filesystem_root_forbidden": true,
+    "system_directory_forbidden": true,
+    "repository_root_forbidden_if_detectable": true,
+    "legacy_root_fields_forbidden": true,
+    "legacy_fallback_forbidden": true
+  },
+  "override_rules": {
+    "environment_config_allowed": true,
+    "explicit_cli_root_is_test_or_maintenance_only": true,
+    "explicit_cli_root_must_be_reported": true
+  }
+}

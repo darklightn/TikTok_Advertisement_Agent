@@ -1,0 +1,26 @@
+# ----- Python -----
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.venv
+.cleaning-test-venv/
+.runtime/
+*.egg-info/
+.pytest_cache/
+
+# ----- 数据（业务数据绝不入库）-----
+*.xlsx
+*.xls
+*.csv
+EXPORT_MANIFEST.json
+
+# ----- Node -----
+node_modules/
+
+# ----- 系统/编辑器 -----
+.DS_Store
+Thumbs.db
+*.log
+.idea/
+.vscode/

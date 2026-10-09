@@ -1,0 +1,11 @@
+{
+  "vector_version": "2026-07-30.1",
+  "creation_note": "payload bytes and expected hashes were independently frozen with PowerShell .NET SHA256",
+  "vectors": [
+    {"dataset_name":"gmvmax_ad_performance_daily","component_values":["gmvmax_campaign_overview","shop-001","7645257137211572244","2026-07-20","PHP"],"expected_sha256":"0b4ce56003acf4b93c386e886b3498b1053f1b3b8acd1a37d37abe4b0276eca5"},
+    {"dataset_name":"gmvmax_ad_performance_hourly","component_values":["gmvmax_campaign_overview","shop-001","7645257137211572244","2026-07-20T14:00:00","PHP"],"expected_sha256":"6173df9d265dbbd376b857b3b4bd9144ce1de31cfe44f0be9747eff033575de5"},
+    {"dataset_name":"gmvmax_campaign_product_interval","component_values":["gmvmax_campaign_product_performance","shop-001","7645257137211572244","7499","5307","2026-07-19","2026-07-20","PHP"],"expected_sha256":"939aa52ae93bfe440a085aed3902fc9b60f21634258b02571af503193b4938e1"},
+    {"dataset_name":"creative_product_interval","component_values":["shop_creative_hub_video","shop-001","7645257137211572244","video-01","5307","2026-07-19","2026-07-20","PHP"],"expected_sha256":"10a640b9c69fd9a43af95bb8e68392a2cdd88fdd3430cdbfe6e769ceb695f61a"},
+    {"dataset_name":"creative_product_interval","component_values":["shop_creative_hub_video","店铺-甲","00123","视频-一","0007","2026-07-19","2026-07-20",null],"expected_sha256":"530722ee221b14cacbe4c4857fb3d35d4ac2ff2e233fc9f0f1737c200a750976"}
+  ]
+}

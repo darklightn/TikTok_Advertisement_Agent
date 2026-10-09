@@ -1,0 +1,4 @@
+interface:
+  display_name: "TikTok Shop Data Export"
+  short_description: "Export validated TikTok Shop advertising, operating, and shop analytics data through ZhanFu; export only, never clean."
+  default_prompt: "Use $tiktok-shop-data-export to open the exact ZhanFu shop and export the requested enabled reports through the gated workflow. For shop analytics, use the user-facing range “店铺经营分析数据”. Do not clean in this Skill."

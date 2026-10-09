@@ -1,0 +1,16 @@
+{
+  "schema_version": "feishu_table_mapping_v2",
+  "mapping_version": "2026-08-13.1",
+  "formal_import_enabled": false,
+  "tables": [
+    {"layer": "RAW", "source_id": "gmvmax_campaign_hourly_performance", "target_table": "RAW_GMV_Max计划小时表现", "grain": "advertiser x campaign x metric date snapshot", "required_identity_fields": ["shop_id", "advertiser_id", "campaign_id", "metric_date"]},
+    {"layer": "CLEAN", "source_id": "gmvmax_campaign_hourly_performance", "target_table": "CLEAN_GMV_Max计划小时表现", "grain": "advertiser x campaign x metric hour x currency", "required_identity_fields": ["shop_id", "advertiser_id", "campaign_id", "metric_hour", "record_key"]},
+    {"layer": "CLEAN", "source_id": "gmvmax_ad_performance_hourly", "target_table": "CLEAN_GMV_Max广告账户小时表现", "grain": "advertiser x metric hour x currency", "required_identity_fields": ["shop_id", "advertiser_id", "metric_hour", "record_key"]}
+  ],
+  "constraints": {
+    "target_table_unique": true,
+    "campaign_and_advertiser_hourly_tables_distinct": true,
+    "daily_and_range_campaign_hour_files_share_target": true,
+    "input_from_cleaning_manifest_outputs_only": true
+  }
+}

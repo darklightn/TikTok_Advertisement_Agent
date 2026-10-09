@@ -1,0 +1,16 @@
+{
+  "contract_id": "capability_ledger_snapshot_contract",
+  "contract_version": "1.0.0",
+  "schema_version": "capability_ledger_snapshot_v1",
+  "required_fields": ["schema_version", "ledger_version", "ledger_sha256", "source_contract", "allowed_statuses", "capabilities"],
+  "ledger_sha256_format": "64_lowercase_hex",
+  "ledger_sha256_scope": "UTF8_JSON_sorted_keys_compact_without_ledger_sha256",
+  "source_contract_sha256_scope": "UTF8_JSON_sorted_keys_compact",
+  "binding_owner": "runtime_capability_audit_only",
+  "cleaning_batch_binding_forbidden": true,
+  "snapshot_is_immutable": true,
+  "runtime_path": "_system/capability-ledgers/<ledger_version>.json",
+  "current_pointer_path": "_system/capability-ledgers/current.json",
+  "current_pointer_is_non_authoritative": true,
+  "package_projection_fields": ["capability_status", "known_gaps"]
+}

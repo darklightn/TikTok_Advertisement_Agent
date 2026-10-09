@@ -1,0 +1,4 @@
+interface:
+  display_name: "TikTok Shop Data Cleaning"
+  short_description: "定位并严格校验已导出的 TikTok Shop 数据集"
+  default_prompt: "根据用户清洗指令定位已导出的数据，校验 Manifest、文件和哈希；缺失或歧义时停止。"

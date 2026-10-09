@@ -1,0 +1,16 @@
+{
+  "contract_id": "dataset_catalog_contract",
+  "contract_version": "1.0.0",
+  "schema_version": "dataset_catalog_v1",
+  "required_fields": ["schema_version", "catalog_version", "catalog_sha256", "source_model", "safe_aggregation_policy", "diagnostic_domain_taxonomy", "datasets"],
+  "dataset_required_fields": ["dataset_name", "report_id", "contract_version", "diagnostic_domains", "owner_type", "grain", "time_semantics", "record_key_fields", "partition_keys", "currency_applicability", "aggregation_semantics"],
+  "dataset_name_unique": true,
+  "catalog_sha256_scope": "UTF8_JSON_sorted_keys_compact_without_catalog_sha256",
+  "source_model_sha256_scope": "UTF8_JSON_sorted_keys_compact",
+  "catalog_snapshot_is_immutable": true,
+  "source_repository_is_authoritative": true,
+  "runtime_snapshot_generation": "deployment_only",
+  "runtime_path": "_system/dataset-catalogs/<catalog_version>.json",
+  "current_pointer_path": "_system/dataset-catalogs/current.json",
+  "current_pointer_is_non_authoritative": true
+}

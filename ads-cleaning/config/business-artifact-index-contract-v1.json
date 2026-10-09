@@ -1,0 +1,8 @@
+{
+  "schema_version": "business_artifact_index_contract_v1",
+  "required_fields": ["dataset_name", "shop_id", "advertiser_id", "campaign_scope", "campaign_ids", "coverage_start", "coverage_end", "completeness", "authoritative", "authority_id", "path", "sha256"],
+  "selection_order": ["exact_coverage", "smallest_complete_cover", "single_authority_id"],
+  "partial_authority_forbidden": true,
+  "overlap_tie_fails_closed": true,
+  "directory_scan_required": false
+}

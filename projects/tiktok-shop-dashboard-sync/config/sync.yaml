@@ -1,0 +1,33 @@
+config_version: 1
+skill_name: tiktok-shop-dashboard-sync
+paths:
+  data_root: ''
+  upstream_state_root: ${LOCALAPPDATA}/tiktok-shop-data-feishu-sync/state
+  runtime_root: ${LOCALAPPDATA}/tiktok-shop-dashboard-sync
+definitions:
+  table: boss_table.yaml
+  dashboard: boss_dashboard.yaml
+target:
+  parent_folder_path: /广告数据部
+  base_name: TikTok Shop 看板中心
+  table_name: 老板看板数据
+  dashboard_name: 老板看板
+currency:
+  shop: PHP
+  ads: USD
+  check_every_sync: true
+  mismatch_action: block_shop
+  allow_empty_product_ads_without_ads: true
+  rewrite_global_labels: false
+execution:
+  single_machine: true
+  serial: true
+feishu:
+  cli_command: [lark-cli]
+  identity: user
+  timeout_seconds: 60
+sync:
+  batch_size: 100
+  page_size: 100
+  readback_attempts: 5
+  readback_interval_seconds: 1

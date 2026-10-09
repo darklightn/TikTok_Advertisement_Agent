@@ -1,0 +1,43 @@
+{
+  "contract_id": "feishu_upstream_handoff_contract",
+  "contract_version": "1.0.0",
+  "consumer": "feishu_import_project",
+  "authority": {
+    "cleaning_root_role": "cleaning_data_root",
+    "published_batch_path": "batches/<cleaning_batch_id>",
+    "batch_manifest": "cleaning_manifest.json",
+    "fact_output_source": "cleaning_manifest.outputs"
+  },
+  "required_input_gates": {
+    "manifest_schema_version": "cleaning_batch_manifest_v3",
+    "cleaning_batch_status": "success",
+    "qa_status": "passed",
+    "verify_output_sha256": true,
+    "verify_dataset_catalog_binding": true,
+    "staging_is_forbidden": true,
+    "export_raw_root_is_forbidden": true,
+    "legacy_paths_are_forbidden": true
+  },
+  "record_rules": {
+    "dataset_name_is_table_identity": true,
+    "record_key_is_upsert_identity": true,
+    "same_record_key_different_record_content_hash_fails_closed": true,
+    "cleaning_version_is_not_business_authority": true,
+    "null_remains_null": true,
+    "shop_owned_datasets_do_not_gain_advertiser_id": true
+  },
+  "time_rules": {
+    "metric_date_preserves_business_date": true,
+    "hour_interval_event_and_snapshot_semantics_follow_field_dictionary": true,
+    "captured_at_is_data_collection_time_not_platform_object_update_time": true,
+    "snapshot_rows_are_not_recast_as_daily_facts": true
+  },
+  "no_data_rules": {
+    "official_no_data_creates_no_fact_row": true,
+    "official_zero_row_output_creates_no_synthetic_row": true
+  },
+  "input_rules": {
+    "consumer_resolves_fact_outputs_by_relative_path_and_sha256": true,
+    "consumer_reads_cleaning_manifest_outputs_only": true
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "schema_version": "cleaning_field_dictionary_contract_v3",
+  "output_schema_version": "cleaning_field_dictionary_v3",
+  "status": "implemented",
+  "top_level": {
+    "required": ["schema_version", "model_version", "datasets"],
+    "additional_properties": false
+  },
+  "dataset_entry": {
+    "required": ["grain", "fields"],
+    "additional_properties": false
+  },
+  "field_entry": {
+    "required": [
+      "name", "type", "source", "aggregation", "formula",
+      "zero_denominator_behavior", "currency_behavior",
+      "semantic_role", "time_role", "nullable"
+    ],
+    "optional": [
+      "semantics", "aggregation_key", "aggregation_rule", "semantic_note",
+      "numerator_fields", "denominator_fields", "source_group", "source_header"
+    ],
+    "additional_properties": false
+  },
+  "ordering": {
+    "dataset_names": "lexicographic",
+    "fields": "exact_csv_column_order",
+    "json_object_keys": "canonical_sorted_key_serializer"
+  },
+  "semantics": {
+    "nullable": "derived from the versioned model type; *_nullable is true and every other type is false",
+    "aggregation": "explicit for every field; not_applicable when the field has no aggregation meaning",
+    "formula": "explicit derived formula or null",
+    "zero_denominator_behavior": "explicit derived-ratio behavior or null",
+    "currency_behavior": "row currency code, currency scope descriptor, value in row currency, or not applicable",
+    "semantic_role": "identifier, lineage, dimension, time, currency, status_or_enum, raw_payload, additive_measure, non_additive_measure, or derived_measure",
+    "time_role": "request boundary, metric time, capture time, source event/schedule time, or not applicable"
+  },
+  "compatibility": {
+    "introduced_in_cleaning_version": "2026-08-11.3",
+    "active_cleaning_version_source": "cleaning_manifest.json:cleaning_version",
+    "active_model_version_source": "field_dictionary.json:model_version",
+    "production_batches": "write and accept cleaning_field_dictionary_v3 only",
+    "dual_write": false
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "contract_id": "cleaning_batch_manifest_contract",
+  "contract_version": "3.1.0",
+  "schema_version": "cleaning_batch_manifest_v3",
+  "identity": {
+    "cleaning_batch_id": "existing_deterministic_uuid_semantics",
+    "cleaning_package_id": "same_as_cleaning_batch_id_no_independent_identity",
+    "new_logical_cleaning_job_id_forbidden": true
+  },
+  "required_fields": [
+    "schema_version", "cleaning_batch_id", "cleaning_package_id", "created_at_utc",
+    "published_at_utc", "storage_contract", "model", "dataset_catalog", "source_manifests",
+    "source_artifacts", "authoritative_work_units", "outputs",
+    "cleaning_batch_status", "source_logical_job_status", "qa_status", "qa_scope",
+    "report_ids", "successful_report_ids", "failed_reports", "shop", "selected_advertiser"
+  ],
+  "identity_context": {
+    "shop_field": "shop.shop_id",
+    "export_seller_id_is_normalized_to_shop_id": true,
+    "seller_id_in_cleaning_manifest_forbidden": true,
+    "advertiser_field": "selected_advertiser.advertiser_id",
+    "shop_owned_datasets_do_not_gain_advertiser_fields": true
+  },
+  "source_artifacts": {
+    "required_fields": ["artifact_id", "export_batch_id", "report_id", "relative_path", "sha256", "captured_at_utc"],
+    "source_artifact_identity_is_preserved": true,
+    "absolute_source_path_forbidden": true,
+    "relative_path_base": "export_root"
+  },
+  "outputs": {
+    "required_fields": ["output_id", "dataset_name", "relative_path", "sha256", "row_count", "source_artifact_ids"],
+    "machine_filename_source": "formal_dataset_name",
+    "dataset_name_must_exist_in_catalog": true,
+    "source_artifact_ids_must_resolve": true,
+    "at_least_one_source_artifact_per_output": true,
+    "duplicate_output_path_forbidden": true
+  },
+  "report_isolation": {
+    "unit": "report_id",
+    "isolatable_code": "report_schema_version_unsupported",
+    "qa_scope": "published_outputs_only",
+    "all_reports_failed_publish_forbidden": true,
+    "failed_report_required_fields": ["report_id", "code", "source_artifact_id", "source_file_relative_path", "observed_header_sha256", "compared_version", "differences"]
+  },
+  "capability_ledger_binding": "forbidden_cleaning_manifest_uses_dataset_catalog_only",
+  "logical_input_contract": "logical_cleaning_package_manifest_v2_or_absent",
+  "upgrade_scope": ["flat_batch_storage", "model_and_catalog_bindings", "source_manifest_and_artifact_bindings", "authoritative_work_units"]
+}

@@ -1,0 +1,243 @@
+config_version: 1
+record_types: &id001
+- 店铺汇总
+- 商品结果
+fields:
+- name: 记录唯一键
+  type: text
+  record_types: *id001
+  nullable: false
+  primary: true
+- name: 记录类型
+  type: single_select
+  record_types: *id001
+  nullable: false
+  options: *id001
+- name: 店铺ID
+  type: text
+  record_types: *id001
+  nullable: false
+- name: 店铺名称
+  type: text
+  record_types: *id001
+  nullable: false
+- name: 统计开始日期
+  type: date
+  record_types: *id001
+  nullable: false
+- name: 统计结束日期
+  type: date
+  record_types: *id001
+  nullable: false
+- name: 统计区间
+  type: text
+  record_types: *id001
+  nullable: false
+- name: 店铺币种
+  type: text
+  record_types: *id001
+  nullable: true
+- name: 广告币种
+  type: text
+  record_types: *id001
+  nullable: true
+- name: 数据更新时间
+  type: datetime
+  record_types: *id001
+  nullable: false
+- name: GMV
+  type: number
+  record_types:
+  - 店铺汇总
+  nullable: true
+- name: 订单数
+  type: number
+  record_types:
+  - 店铺汇总
+  nullable: true
+- name: 客户数
+  type: number
+  record_types:
+  - 店铺汇总
+  nullable: true
+- name: AOV
+  type: number
+  record_types:
+  - 店铺汇总
+  nullable: true
+- name: 退款金额率
+  type: number
+  record_types:
+  - 店铺汇总
+  nullable: true
+- name: 广告消耗
+  type: number
+  record_types:
+  - 店铺汇总
+  nullable: true
+- name: 广告收入
+  type: number
+  record_types:
+  - 店铺汇总
+  nullable: true
+- name: 实际ROI
+  type: number
+  record_types:
+  - 店铺汇总
+  nullable: true
+- name: 广告订单
+  type: number
+  record_types:
+  - 店铺汇总
+  nullable: true
+- name: 平均下单成本
+  type: number
+  record_types:
+  - 店铺汇总
+  nullable: true
+- name: 商品ID
+  type: text
+  record_types:
+  - 商品结果
+  nullable: false
+- name: 商品名称
+  type: text
+  record_types:
+  - 商品结果
+  nullable: true
+- name: 商品GMV
+  type: number
+  record_types:
+  - 商品结果
+  nullable: true
+- name: 商品订单数
+  type: number
+  record_types:
+  - 商品结果
+  nullable: true
+- name: 商品实际ROI
+  type: number
+  record_types:
+  - 商品结果
+  nullable: true
+- name: 商品退款金额率
+  type: number
+  record_types:
+  - 商品结果
+  nullable: true
+sources:
+  shop:
+    relative_path: 20_清洗数据/店铺诊断.xlsx
+    sheet: 数据
+    required_headers:
+    - 店铺ID
+    - 店铺名称
+    - 统计开始日期
+    - 统计结束日期
+    - 店铺GMV
+    - 订单数
+    - 客户数
+    - AOV
+    - 退款金额率
+    - 店铺币种
+  ads:
+    relative_path: 20_清洗数据/广告户诊断.xlsx
+    sheet: 数据
+    required_headers:
+    - 店铺ID
+    - 店铺名称
+    - 统计开始日期
+    - 统计结束日期
+    - 广告户ID
+    - 广告总成本
+    - GMV Max总收入
+    - 实际ROI
+    - GMV Max SKU订单数
+    - GMV Max平均下单成本
+    - 广告币种
+  product:
+    relative_path: 20_清洗数据/商品经营诊断.xlsx
+    sheet: 数据
+    required_headers:
+    - 店铺ID
+    - 店铺名称
+    - 统计开始日期
+    - 统计结束日期
+    - 商品ID
+    - 商品名称
+    - 商品GMV
+    - 订单数
+    - 实际ROI
+    - 退款金额率
+    - 店铺币种
+    - 广告币种
+metrics:
+  GMV:
+    source: shop
+    field: 店铺GMV
+  订单数:
+    source: shop
+    field: 订单数
+  客户数:
+    source: shop
+    field: 客户数
+  AOV:
+    source: shop
+    field: AOV
+  退款金额率:
+    source: shop
+    field: 退款金额率
+  广告消耗:
+    source: ads
+    field: 广告总成本
+  广告收入:
+    source: ads
+    field: GMV Max总收入
+  实际ROI:
+    source: ads
+    field: 实际ROI
+  广告订单:
+    source: ads
+    field: GMV Max SKU订单数
+  平均下单成本:
+    source: ads
+    field: GMV Max平均下单成本
+  商品GMV:
+    source: product
+    field: 商品GMV
+  商品订单数:
+    source: product
+    field: 订单数
+  商品实际ROI:
+    source: product
+    field: 实际ROI
+  商品退款金额率:
+    source: product
+    field: 退款金额率
+keys:
+  店铺汇总: 店铺汇总|{shop_id}|{start_date}|{end_date}
+  商品结果: 商品结果|{shop_id}|{start_date}|{end_date}|{product_id}
+period_labels:
+  single_day: '{start_date}'
+  range: '{start_date} ～ {end_date}'
+rules:
+  period_match: exact
+  generate_missing_periods: false
+  include_cancelled_orders: true
+  customer_count: read_cleaned_period
+  non_applicable_value: null
+  source_null_value: null
+  preserve_zero: true
+  required_headers_must_exist: true
+  missing_identity: block_scope
+  duplicate_key: block_scope
+  sync_actions:
+  - insert
+  - update
+  - skip
+  delete_absent_records: false
+  rename_scope: all_rows_same_shop_id
+  rename_preserve_business_values: true
+  shop_currency_required_when_amount_present: true
+  ads_currency_required_when_amount_present: true
+  product_ads_currency_nullable_without_ads: true
